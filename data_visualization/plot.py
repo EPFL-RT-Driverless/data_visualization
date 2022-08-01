@@ -1,4 +1,3 @@
-# from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Optional
 
@@ -29,6 +28,13 @@ class Plot:
     _anim: Optional[FuncAnimation]
 
     def __init__(self, row_nbr: int, col_nbr: int, mode: Mode):
+        """
+        Initializes the plot with an empty Gridspec of size row_nbr x col_nbr.
+
+        :param row_nbr: number of rows
+        :param col_nbr: number of columns
+        :param mode: whether the plot should be static, dynamic, or live dynamic
+        """
         self._fig = plt.figure()
         self._gridspec = self._fig.add_gridspec(row_nbr, col_nbr)
         self._row_nbr = row_nbr
@@ -53,10 +59,21 @@ class Plot:
         curves: dict,
     ):
         """
-        The positions inidcated by row_idx and col_idx should be unoccupied and should
-        form a contiguous rectangle (i.e. the lists have to be both contiguous)..
-        All the curves inside the subplot should have the same units for xdata and ydata.
+        Adds a new subplot to the plot at a position specified by row_idx and col_idx
+        that should not be already taken by another subplot.
+        :param name: name of the subplot that will be used as title
+        :param row_idx: row indices of the subplot. Should be a contiguous slice object (i.e. step == 1 or step == None)
+        :param col_idx: column indices of the subplot. Should be a contiguous slice object (i.e. step == 1 or step == None)
+        :param subplot_type: type of the subplot. Should be either Plot.SubplotType.SPATIAL or Plot.SubplotType.TEMPORAL
+        :param unit: unit of the subplot. Should be a string
+        :type unit: str
+        :param show_unit: whether to show the unit of the subplot in the title or not.
+        :param curves: A dictionary of curves. The keys are the names of the curves and the
+        values are dictionaries with the following keys:
+        - data: the data to be plotted. None if the data is not yet known
+        - options: a dictionary of options for the plot
         """
+
         # give some default values
         if row_idx is None:
             row_idx = slice(0, self._row_nbr)
@@ -93,8 +110,11 @@ class Plot:
                 assert "options" in curve_values.keys()
                 assert type(curve_values["options"]) is dict
 
+                # set subplot title
+                ax.title(curve_name + " " + unit if show_unit else curve_name)
+
                 # if we don't specify any data, we plot an empty array
-                if curve_values["data"].size == 0:
+                if curve_values["data"] is None or curve_values["data"].size == 0:
                     (line,) = ax.plot([], [], **curve_values["options"])
                 else:
                     (line,) = ax.plot(
@@ -106,6 +126,7 @@ class Plot:
                 # we add the matplotlib.lines.Line2D to the dict describing the curve
                 curves[curve_name]["line"] = line
 
+            # update the _content dict with everything that was specified
             self._content[name] = {
                 "row_idx": row_idx,
                 "col_idx": col_idx,
@@ -116,7 +137,8 @@ class Plot:
                 "curves": curves,
             }
         else:
-            # we should have already raised an error if the Display mode was not STATIC
+            # we should have already raised an error in __init__ if the Display mode was
+            # not STATIC
             pass
 
     def get_subplot_names(self):
@@ -125,76 +147,3 @@ class Plot:
         for subplot_name, subplot in res.items():
             res[subplot_name] = subplot["curves"].keys()
         return res
-
-    # def init_animation(self):
-    #     pass
-    #
-    # # @abstractmethod
-    # def animate(self, data: dict):
-    #     if len(data) == 0:
-    #         # we did not specify any data so we are going to use the one already specified at the creation of the subplots.
-    #         # we either display the animation, or only the result
-    #         try:
-    #             pass
-    #         except Exception:
-    #             raise ValueError("You did not specify data")
-    #
-    #     for subplot_name, subplot_curves in data.items():
-    #
-    #
-    # def create_animation(
-    #     self, show: bool = True, save: bool = False, filename: str = None
-    # ):
-    #     self.anim = animation.FuncAnimation(
-    #         self.fig,
-    #         self.animate,
-    #         # init_func=init_animation,
-    #         frames=len(self.data["curves"]["X"]),
-    #         # interval=1000 / sampling_time,
-    #         blit=True,
-    #     )
-    #     if show:
-    #         plt.show()
-    #     if save:
-    #         self.anim.save(filename, fps=30, extra_args=["-vcodec", "libx264"])
-
-    # def animate_live(self):
-    #     pass
-    #
-    # def _init_animation_from_existing_data(self):
-    #     data_size = None
-    #     # check that all the data has the same size
-    #     content_names = self.get_subplot_names()
-    #     for subplot_name, curve_names in content_names.items():
-    #         for curve_name in curve_names:
-    #             curve_description = self._content[subplot_name]["curves"][curve_name]
-    #             size = curve_description["data"].shape[-1]
-    #             if size is None:
-    #                 size = data_size
-    #             elif size != data_size:
-    #                 raise ValueError(
-    #                     "All the curve data don't have the same number of values."
-    #                 )
-    #
-    #     # define the callback that updates the animation
-    #     def update_anim(i):
-    #         for subplot_name, curve_names in content_names.items():
-    #             for curve_name in curve_names:
-    #                 curve_description = self._content[subplot_name]["curves"][
-    #                     curve_name
-    #                 ]
-    #                 curve_description["line"].set_data(
-    #                     curve_description["data"][:, :, i]
-    #                     if curve_description["prediction"]
-    #                     else curve_description["data"][:, :i]
-    #                 )
-    #
-    #     return FuncAnimation(self._fig, update_anim, data_size)
-    #
-    # def animate_from_existing_data(self):
-    #     self._init_animation_from_existing_data()
-    #     plt.show()
-    #
-    # def save_animation(self, filename: str, fps: int):
-    #     anim = self._init_animation_from_existing_data()
-    #     anim.save(filename, fps=fps)
