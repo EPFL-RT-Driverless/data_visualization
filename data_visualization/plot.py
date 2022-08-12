@@ -18,6 +18,14 @@ class Plot:
         SPATIAL = 0
         TEMPORAL = 1
 
+    class CurvePlotStyle(Enum):
+        PLOT = 0
+        SCATTER = 1
+        STEP = 2
+        SEMILOGX = 3
+        SEMILOGY = 4
+        LOGLOG = 5
+
     _fig: Figure
     _gridspec: GridSpec
     _row_nbr: int
@@ -35,16 +43,18 @@ class Plot:
         :param col_nbr: number of columns
         :param mode: whether the plot should be static, dynamic, or live dynamic
         """
+        if mode != Plot.Mode.STATIC:
+            raise NotImplementedError(
+                "Dynamic and Live Dynamice modes are not implemented yet"
+            )
+
         self._fig = plt.figure()
         self._gridspec = self._fig.add_gridspec(row_nbr, col_nbr)
         self._row_nbr = row_nbr
         self._col_nbr = col_nbr
         self._plot_positions = np.zeros((row_nbr, col_nbr), dtype=bool)
         self._content = {}
-        if mode != Plot.Mode.STATIC:
-            raise NotImplementedError(
-                "Dynamic and Live Dynamice modes are not implemented yet"
-            )
+
         self._mode = mode
         self._anim = None
 
@@ -100,6 +110,8 @@ class Plot:
 
         # create the subplot
         ax = self._fig.add_subplot(self._gridspec[row_idx, col_idx])
+        if subplot_type == Plot.SubplotType.SPATIAL:
+            plt.axis("equal")
 
         # examine the specified data and plot everything
         if self._mode == Plot.Mode.STATIC:
