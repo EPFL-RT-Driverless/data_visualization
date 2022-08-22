@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -61,8 +61,8 @@ class Plot:
     def add_subplot(
         self,
         name: str,
-        row_idx: slice,
-        col_idx: slice,
+        row_idx: Union[slice, int, range],
+        col_idx: Union[slice, int, range],
         subplot_type: SubplotType,
         unit: str,
         show_unit: bool,
@@ -83,6 +83,16 @@ class Plot:
         - data: the data to be plotted. None if the data is not yet known
         - options: a dictionary of options for the plot
         """
+        if type(row_idx) is range:
+            assert row_idx.step is None or row_idx.step == 1
+            row_idx = slice(row_idx.start, row_idx.stop, 1)
+        if type(row_idx) is int:
+            row_idx = slice(row_idx, row_idx + 1)
+        if type(col_idx) is range:
+            assert col_idx.step is None or col_idx.step == 1
+            col_idx = slice(col_idx.start, col_idx.stop, 1)
+        if type(col_idx) is int:
+            col_idx = slice(col_idx, col_idx + 1)
 
         # give some default values
         if row_idx is None:
@@ -125,15 +135,42 @@ class Plot:
                 # set subplot title
                 ax.title(curve_name + " " + unit if show_unit else curve_name)
 
+                # plot the data with the specified style
                 # if we don't specify any data, we plot an empty array
-                if curve_values["data"] is None or curve_values["data"].size == 0:
-                    (line,) = ax.plot([], [], **curve_values["options"])
+                plot_style: Plot.CurvePlotStyle = curve_values["options"].pop(
+                    "curve_style", Plot.CurvePlotStyle.PLOT
+                )
+                if plot_style == Plot.CurvePlotStyle.PLOT:
+                    plot_fun = ax.plot
+                elif plot_style == Plot.CurvePlotStyle.STEP:
+                    plot_fun = ax.step
+                elif plot_style == Plot.CurvePlotStyle.SCATTER:
+                    plot_fun = ax.scatter
+                elif plot_style == Plot.CurvePlotStyle.SEMILOGX:
+                    plot_fun = ax.semilogx
+                elif plot_style == Plot.CurvePlotStyle.SEMILOGY:
+                    plot_fun = ax.semilogy
+                elif plot_style == Plot.CurvePlotStyle.LOGLOG:
+                    plot_fun = ax.loglog
                 else:
-                    (line,) = ax.plot(
-                        curve_values["data"][0, :],
-                        curve_values["data"][1, :],
-                        **curve_values["options"],
-                    )
+                    raise ValueError("Unknown plot style: ", plot_style)
+
+                if curve_values["data"] is None or curve_values["data"].size == 0:
+                    (line,) = plot_fun([], [], **curve_values["options"])
+                else:
+                    if (
+                        len(curve_values["data"].shape) == 2
+                        and curve_values["data"].shape[0] == 2
+                    ):
+                        (line,) = plot_fun(
+                            curve_values["data"][0, :],
+                            curve_values["data"][1, :],
+                            **curve_values["options"],
+                        )
+                    else:
+                        (line,) = plot_fun(
+                            curve_values["data"], **curve_values["options"]
+                        )
 
                 # we add the matplotlib.lines.Line2D to the dict describing the curve
                 curves[curve_name]["line"] = line
