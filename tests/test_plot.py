@@ -6,7 +6,7 @@ from data_visualization import Plot
 if __name__ == "__main__":
     plot = Plot(4, 2, Plot.Mode.STATIC)
     plot.add_subplot(
-        name="map",
+        subplot_name="map",
         row_idx=slice(4),
         col_idx=slice(1),
         unit="m",
@@ -20,7 +20,7 @@ if __name__ == "__main__":
         },
     )
     plot.add_subplot(
-        name="yaw",
+        subplot_name="yaw",
         row_idx=slice(1, 2),
         col_idx=slice(1, 2),
         unit="rad",
