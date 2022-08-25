@@ -1,34 +1,42 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from data_visualization import Plot
+from data_visualization import *
 
 if __name__ == "__main__":
-    plot = Plot(4, 2, Plot.Mode.STATIC)
+    plot = Plot(
+        row_nbr=4,
+        col_nbr=2,
+        mode=PlotMode.STATIC,
+    )
     plot.add_subplot(
         subplot_name="map",
-        row_idx=slice(4),
-        col_idx=slice(1),
+        row_idx=range(4),
+        col_idx=0,
         unit="m",
         show_unit=True,
-        subplot_type=Plot.SubplotType.SPATIAL,
+        subplot_type=SubplotType.SPATIAL,
         curves={
             "left_cones": {
                 "data": np.zeros((2, 10)),
-                "options": {"color": "red", "marker": "o"},
+                "curve_type": CurveType.REGULAR,
+                "curve_style": CurvePlotStyle.PLOT,
+                "mpl_options": {"color": "red", "marker": "o"},
             },
         },
     )
     plot.add_subplot(
         subplot_name="yaw",
-        row_idx=slice(1, 2),
-        col_idx=slice(1, 2),
+        row_idx=1,
+        col_idx=1,
         unit="rad",
         show_unit=True,
-        subplot_type=Plot.SubplotType.TEMPORAL,
+        subplot_type=SubplotType.TEMPORAL,
         curves={
             "yaw": {
                 "data": np.zeros((2, 10)),
+                "curve_type": CurveType.REGULAR,
+                "curve_style": CurvePlotStyle.PLOT,
                 "options": {"color": "blue", "marker": "o"},
             },
         },
