@@ -1,13 +1,17 @@
-#  Copyright (c) 2022. Tudor Oancea EPFL Racing Team Driverless
+#  Copyright (c) 2022. Tudor Oancea, Mattéo Berthet, EPFL Racing Team Driverless
+import multiprocessing as mp
 import warnings
 from enum import Enum
-from typing import Optional, Union, Callable
+from typing import Optional, Union
 
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.figure import Figure
 from matplotlib.gridspec import GridSpec
+
+from .subscriber import launch_client
+from .constants import STOP_SIGNAL
 
 __all__ = ["Plot", "PlotMode", "SubplotType", "CurveType", "CurvePlotStyle"]
 
@@ -56,6 +60,10 @@ class Plot:
     _anim: Optional[FuncAnimation]
     _length_curves: int
 
+    # stuff for Live dynamic mode
+    _live_dynamic_data_queue: Optional[mp.Queue]
+    _no_more_values: Optional[bool]
+
     def __init__(
         self,
         mode: PlotMode,
@@ -63,6 +71,8 @@ class Plot:
         col_nbr: int,
         interval: Optional[int] = None,
         sampling_time: Optional[float] = None,
+        host: str = "127.0.0.1",
+        port: int = 1024,
     ):
         """
         Initializes the plot with an empty Gridspec of size row_nbr x col_nbr.
@@ -85,6 +95,19 @@ class Plot:
         self._content = {}
         self._anim = None
         self._length_curves = 0
+
+        if self.mode == PlotMode.LIVE_DYNAMIC:
+            self._live_dynamic_data_queue = mp.Queue()
+            socket_proc = mp.Process(
+                target=launch_client,
+                args=(
+                    self._live_dynamic_data_queue,
+                    host,
+                    port,
+                ),
+            )
+            socket_proc.start()
+            self._no_more_values = False
 
     def add_subplot(
         self,
@@ -127,6 +150,7 @@ class Plot:
 
         # create the subplot
         ax = self._fig.add_subplot(self._gridspec[row_idx, col_idx])
+        ax.autoscale_view()
         if subplot_type == SubplotType.SPATIAL:
             plt.axis("equal")
 
@@ -141,7 +165,10 @@ class Plot:
             if "data" not in curve_values:
                 curve_values["data"] = None
             else:
-                assert isinstance(curve_values["data"], np.ndarray)
+                assert (
+                    isinstance(curve_values["data"], np.ndarray)
+                    or curve_values["data"] is None
+                )
             if "mpl_options" not in curve_values:
                 curve_values["mpl_options"] = {}
             else:
@@ -152,7 +179,7 @@ class Plot:
             elif curve_values["curve_style"] == CurvePlotStyle.STEP:
                 plot_fun = ax.step
             elif curve_values["curve_style"] == CurvePlotStyle.SCATTER:
-                plot_fun = ax.scatter
+                raise ValueError("fuck you mpl sucks")
             elif curve_values["curve_style"] == CurvePlotStyle.SEMILOGX:
                 plot_fun = ax.semilogx
             elif curve_values["curve_style"] == CurvePlotStyle.SEMILOGY:
@@ -225,20 +252,20 @@ class Plot:
             "curves": curves,
         }
 
-    def plot(self, show: bool = True, save: bool = True, save_path: str = None):
+    def plot(self, show: bool = True, save: bool = False, save_path: str = None):
         # for static, plot everything
         # for dynamic, plot static curves and use _update_dynamic for the animation
         # for live dynamic, plot static curves and use _update_live_dynamic for the animation
         # the curves that are not plotted (right now) are actually plotted as empty lines
         for subplot_name, subplot in self._content.items():
             # set subplot title
-            subplot["ax"].title(
+            subplot["ax"].set_title(
                 subplot_name + " " + subplot["unit"]
                 if subplot["show_unit"]
                 else subplot_name
             )
             # plot all the curves inside
-            for curve_name, curve in self._content["curves"].items():
+            for curve_name, curve in subplot["curves"].items():
                 if (
                     curve["curve_type"] == CurveType.STATIC
                     or self.mode == PlotMode.STATIC
@@ -267,7 +294,7 @@ class Plot:
 
         # create animation if necessary
         if self.mode == PlotMode.DYNAMIC:
-            anim = FuncAnimation(
+            self._anim = FuncAnimation(
                 self._fig,
                 self._update_dynamic,
                 frames=self._length_curves,
@@ -275,75 +302,205 @@ class Plot:
                 blit=True,
             )
         elif self.mode == PlotMode.LIVE_DYNAMIC:
-            anim = FuncAnimation(
+            self._anim = FuncAnimation(
                 self._fig,
                 self._update_live_dynamic,
+                frames=self._live_dynamic_generator,
                 interval=self._interval,
                 blit=True,
             )
-        else:
-            anim = None
 
         if save:
-            assert save_path is not None, "save_path should be specified"
-            try:
-                anim.save(save_path, fps=30, extra_args=["-vcodec", "libx264"], dpi=300)
-            except:
-                warnings.warn("cannot save static plots")
-        elif show:
-            plt.show(block=False)
+            if self.mode == PlotMode.DYNAMIC:
+                assert save_path is not None, "save_path should be specified"
+                self._anim.save(
+                    save_path, fps=30, extra_args=["-vcodec", "libx264"], dpi=300
+                )
+            else:
+                warnings.warn("cannot save static and live dynamic plots")
 
-    def _update_dynamic(self, iteration: int):
+        elif show:
+            # plt.show(block=False)
+            plt.show(block=True)
+
+    def _live_dynamic_generator(self):
+        n = 0
+        while not self._no_more_values:
+            yield n
+            n += 1
+
+    def _update_dynamic(self, frame: int):
         if self.mode != PlotMode.DYNAMIC:
             raise ValueError("_update_dynamic should only be called in dynamic mode")
         else:
-            artists = []
-            for subplot_name, subplot in self._content.items():
-                for curve_name, curve in subplot["curves"].items():
-                    if subplot["subplot_type"] == SubplotType.TEMPORAL:
-                        xdata = np.arange(iteration)
-                        if curve["curve_type"] == CurveType.REGULAR:
-                            if self._sampling_time is not None:
-                                xdata *= self._sampling_time
+            return self._update_common(frame, live_dynamic=False)
 
-                            curve["line"].set_data(xdata, curve["data"][:iteration])
-                            artists.append(curve["line"])
-                        elif curve["curve_type"] == CurveType.PREDICTION:
-                            xdata += curve["data"].shape[0]
-                            if self._sampling_time is not None:
-                                xdata *= self._sampling_time
-
-                            curve["line"].set_data(xdata, curve["data"][:, iteration])
-                            artists.append(curve["line"])
-
-                    elif subplot["subplot_type"] == SubplotType.SPATIAL:
-                        if curve["curve_type"] == CurveType.REGULAR:
-                            curve["line"].set_data(
-                                curve["data"][0, :iteration],
-                                curve["data"][1, :iteration],
-                            )
-                            artists.append(curve["line"])
-                        elif curve["curve_type"] == CurveType.PREDICTION:
-                            curve["line"].set_data(
-                                curve["data"][0, :, iteration],
-                                curve["data"][1, :, iteration],
-                            )
-                            artists.append(curve["line"])
-                    else:
-                        raise ValueError(
-                            "Unknown subplot type: ", subplot["subplot_type"]
-                        )
-
-            return artists
-
-    def _update_live_dynamic(self):
-        # TODO: implement this
+    def _update_live_dynamic(self, frame):
         if self.mode != PlotMode.LIVE_DYNAMIC:
             raise ValueError(
                 "_update_live_dynamic should only be called in live dynamic mode"
             )
         else:
-            pass
+            # first fetch new data via socket
+            di = self._live_dynamic_data_queue.get(block=True)
+            if di == STOP_SIGNAL:
+                self._no_more_values = True
+            else:
+                assert type(di) is dict
+                for subplot_name, subplot in di.items():
+                    for curve_name, curve in subplot.items():
+
+                        just_assign_dont_worry = (
+                            self._content[subplot_name]["curves"][curve_name]["data"]
+                            is None
+                        )
+
+                        if (
+                            self._content[subplot_name]["subplot_type"]
+                            == SubplotType.SPATIAL
+                        ):
+                            if (
+                                self._content[subplot_name]["curves"][curve_name][
+                                    "curve_type"
+                                ]
+                                == CurveType.REGULAR
+                            ):
+                                assert type(curve) is np.ndarray
+                                assert curve.shape == (2,)
+                                if just_assign_dont_worry:
+                                    self._content[subplot_name]["curves"][curve_name][
+                                        "data"
+                                    ] = np.expand_dims(curve, 1)
+                                else:
+                                    self._content[subplot_name]["curves"][curve_name][
+                                        "data"
+                                    ] = np.append(
+                                        self._content[subplot_name]["curves"][
+                                            curve_name
+                                        ]["data"],
+                                        np.expand_dims(curve, 1),
+                                        axis=1,
+                                    )
+                            elif (
+                                self._content[subplot_name]["curves"][curve_name][
+                                    "curve_type"
+                                ]
+                                == CurveType.PREDICTION
+                            ):
+                                assert type(curve) is np.ndarray
+                                if not just_assign_dont_worry:
+                                    assert (
+                                        curve.shape
+                                        == self._content[subplot_name]["curves"][
+                                            curve_name
+                                        ]["data"].shape
+                                    )
+                                self._content[subplot_name]["curves"][curve_name][
+                                    "data"
+                                ] = curve
+                            else:
+                                raise ValueError("big bruh")
+                        elif (
+                            self._content[subplot_name]["subplot_type"]
+                            == SubplotType.TEMPORAL
+                        ):
+                            if (
+                                self._content[subplot_name]["curves"][curve_name][
+                                    "curve_type"
+                                ]
+                                == CurveType.REGULAR
+                            ):
+                                assert type(curve) is float
+                                if just_assign_dont_worry:
+                                    self._content[subplot_name]["curves"][curve_name][
+                                        "data"
+                                    ] = np.expand_dims(curve, 0)
+                                else:
+                                    self._content[subplot_name]["curves"][curve_name][
+                                        "data"
+                                    ] = np.append(
+                                        self._content[subplot_name]["curves"][
+                                            curve_name
+                                        ]["data"],
+                                        np.expand_dims(curve, 0),
+                                        axis=0,
+                                    )
+                            elif (
+                                self._content[subplot_name]["curves"][curve_name][
+                                    "curve_type"
+                                ]
+                                == CurveType.PREDICTION
+                            ):
+                                assert type(curve) is np.ndarray
+                                assert len(curve.shape) == 1
+                                # if not just_assign_dont_worry:
+                                #     assert (
+                                #         curve.shape
+                                #         == self._content[subplot_name]["curves"][
+                                #             curve_name
+                                #         ]["data"].shape
+                                #     )
+                                self._content[subplot_name]["curves"][curve_name][
+                                    "data"
+                                ] = curve
+                            else:
+                                raise ValueError("big bruh")
+                        else:
+                            raise ValueError("bruh")
+
+            # update the plot
+            return self._update_common(frame, live_dynamic=True)
+
+    def _update_common(self, frame: int, live_dynamic: bool = False):
+        artists = []
+        for subplot_name, subplot in self._content.items():
+            for curve_name, curve in subplot["curves"].items():
+                if subplot["subplot_type"] == SubplotType.TEMPORAL:
+                    if curve["curve_type"] != CurveType.STATIC:
+                        if curve["curve_type"] == CurveType.REGULAR:
+                            xdata = np.arange(frame + 1)
+                        else:
+                            # we have curve["curve_type"] == CurveType.PREDICTION
+                            xdata = np.arange(curve["data"].size) + frame
+
+                        if self._sampling_time is not None:
+                            xdata *= self._sampling_time
+
+                        # curve["line"].set_data(
+                        #     xdata, curve["data"] if live_dynamic else curve["data"][:frame]
+                        # )
+                        # print(curve["curve_type"], xdata.shape, curve["data"][:frame+1].shape)
+                        curve["line"].set_data(
+                            xdata,
+                            curve["data"][: frame + 1]
+                            if curve["curve_type"] == CurveType.REGULAR
+                            else curve["data"],
+                        )
+
+                        artists.append(curve["line"])
+
+                elif subplot["subplot_type"] == SubplotType.SPATIAL:
+                    if curve["curve_type"] != CurveType.STATIC:
+                        if curve["curve_type"] == CurveType.REGULAR:
+                            curve["line"].set_data(
+                                curve["data"][0, : frame + 1],
+                                curve["data"][1, : frame + 1],
+                            )
+                        elif curve["curve_type"] == CurveType.PREDICTION:
+                            curve["line"].set_data(
+                                curve["data"][0, :, frame]
+                                if not live_dynamic
+                                else curve["data"][0, :],
+                                curve["data"][1, :, frame]
+                                if not live_dynamic
+                                else curve["data"][1, :],
+                            )
+
+                        artists.append(curve["line"])
+                else:
+                    raise ValueError("Unknown subplot type: ", subplot["subplot_type"])
+
+        return artists
 
 
 def _convert_to_contiguous_slice(idx: Union[slice, int, range]) -> slice:
@@ -362,3 +519,7 @@ def _convert_to_contiguous_slice(idx: Union[slice, int, range]) -> slice:
         raise ValueError("idx must be a contiguous slice")
 
     return idx
+
+
+if __name__ == "__main__":
+    pass
