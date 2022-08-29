@@ -214,16 +214,16 @@ class Plot:
             else:
                 raise ValueError("Unknown subplot type: ", subplot_type)
 
-            # update the _content dict with everything that was specified
-            self._content[subplot_name] = {
-                "row_idx": row_idx,
-                "col_idx": col_idx,
-                "unit": unit,
-                "show_unit": show_unit,
-                "subplot_type": subplot_type,
-                "ax": ax,
-                "curves": curves,
-            }
+        # update the _content dict with everything that was specified
+        self._content[subplot_name] = {
+            "row_idx": row_idx,
+            "col_idx": col_idx,
+            "unit": unit,
+            "show_unit": show_unit,
+            "subplot_type": subplot_type,
+            "ax": ax,
+            "curves": curves,
+        }
 
     def plot(self, show: bool = True, save: bool = True, save_path: str = None):
         # for static, plot everything
@@ -294,7 +294,6 @@ class Plot:
             plt.show(block=False)
 
     def _update_dynamic(self, iteration: int):
-        # TODO: implement this
         if self.mode != PlotMode.DYNAMIC:
             raise ValueError("_update_dynamic should only be called in dynamic mode")
         else:
