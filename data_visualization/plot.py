@@ -147,20 +147,20 @@ class Plot:
             else:
                 assert isinstance(curve_values["mpl_options"], dict)
 
-            if curve_values["plot_style"] == CurvePlotStyle.PLOT:
+            if curve_values["curve_style"] == CurvePlotStyle.PLOT:
                 plot_fun = ax.plot
-            elif curve_values["plot_style"] == CurvePlotStyle.STEP:
+            elif curve_values["curve_style"] == CurvePlotStyle.STEP:
                 plot_fun = ax.step
-            elif curve_values["plot_style"] == CurvePlotStyle.SCATTER:
+            elif curve_values["curve_style"] == CurvePlotStyle.SCATTER:
                 plot_fun = ax.scatter
-            elif curve_values["plot_style"] == CurvePlotStyle.SEMILOGX:
+            elif curve_values["curve_style"] == CurvePlotStyle.SEMILOGX:
                 plot_fun = ax.semilogx
-            elif curve_values["plot_style"] == CurvePlotStyle.SEMILOGY:
+            elif curve_values["curve_style"] == CurvePlotStyle.SEMILOGY:
                 plot_fun = ax.semilogy
-            elif curve_values["plot_style"] == CurvePlotStyle.LOGLOG:
+            elif curve_values["curve_style"] == CurvePlotStyle.LOGLOG:
                 plot_fun = ax.loglog
             else:
-                raise ValueError("Unknown plot style: ", curve_values["plot_style"])
+                raise ValueError("Unknown plot style: ", curve_values["curve_style"])
             curves[curve_name]["plot_fun"] = plot_fun
 
             # check the specified data for the curve
