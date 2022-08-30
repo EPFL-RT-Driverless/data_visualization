@@ -4,13 +4,8 @@ from time import sleep
 from data_visualization import Publisher
 
 if __name__ == "__main__":
-    server = Publisher()
-    while True:
-        if server.kill_thread:
-            break
-        #input("entrez svp")
-
-        # array = np.random.rand(1, 10)
+    publisher = Publisher()
+    while not publisher.stop:
         di = {
             "temporal": {
                 "yaw": np.random.rand() * 0.06 - 0.03,
@@ -22,10 +17,5 @@ if __name__ == "__main__":
             },
         }
 
-        server.state_history.append(di)
-        server.queue.put(di)
+        publisher.publish_msg(di)
         sleep(1)
-        print("added")
-        print(len(server.state_history))
-        print(server.queue.qsize())
-        # print(self.stack.get())

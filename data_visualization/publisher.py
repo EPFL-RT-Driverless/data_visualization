@@ -20,7 +20,7 @@ class Publisher:
 
     host: str  # Hostname of the machine on which runs the Subscriber.
     port: int  # port to which to connect
-    _kill_thread: bool  # used to stop the auxiliary thread when the main thread is killed
+    stop: bool  # used to stop the auxiliary thread when the main thread is killed
     _msg_queue: Queue  # queue used to send data to publish to the auxiliary thread
     msg_history: list  # list of all the messages sent
     _publisher_socket: socket  # socket used to connect to the Subscriber
@@ -30,7 +30,7 @@ class Publisher:
     def __init__(self, host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, **kwargs):
         self.host = host
         self.port = port
-        self._kill_thread = False
+        self.stop = False
         self._msg_queue = Queue()
         self.msg_history = []
 
@@ -58,15 +58,18 @@ class Publisher:
         if self.verbose:
             print("[PUBLISHER] : " + msg)
 
-    def update_queue(self, msg: Union[str, dict]):
+    def publish_msg(self, msg: Union[str, dict]):
+        self.msg_history.append(msg)
         self._msg_queue.put(msg)
         self._print_status_message(
-            "updated queue, new size: {}".format(self._msg_queue.qsize())
+            "added message to publish queue, new size: {}".format(
+                self._msg_queue.qsize()
+            )
         )
 
     def _signal_handler(self, si, frame):
         self._print_status_message("You pressed Ctrl+C!")
-        self._kill_thread = True
+        self.stop = True
         self._print_status_message(self.msg_history)
         self._publisher_thread.join()
         self._print_status_message("Server thread is joined")
@@ -91,7 +94,7 @@ class Publisher:
 
         self._print_status_message("Connection established")
         while True:
-            if self._kill_thread:
+            if self.stop:
                 self._print_status_message("Switching off...")
                 break
                 # self._print_status_message()(f'Connection to {adr} established')
