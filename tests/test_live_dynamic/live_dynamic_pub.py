@@ -1,11 +1,11 @@
 import numpy as np
 from time import sleep
 
-from data_visualization import Publisher
+from data_visualization import Publisher, STOP_SIGNAL
 
 if __name__ == "__main__":
     publisher = Publisher()
-    while not publisher.stop:
+    for i in range(100):
         di = {
             "temporal": {
                 "yaw": np.random.rand() * 0.06 - 0.03,
@@ -18,4 +18,6 @@ if __name__ == "__main__":
         }
 
         publisher.publish_msg(di)
-        sleep(1)
+        sleep(0.1)
+
+    publisher.publish_msg(STOP_SIGNAL)

@@ -1,4 +1,4 @@
-#  Copyright (c) 2022. Tudor Oancea, Mattéo Berthet EPFL Racing Team Driverless
+#  Copyright (c) 2022. Tudor Oancea, Mattéo Berthet, EPFL Racing Team Driverless
 import pickle
 import signal
 from queue import Queue
@@ -14,8 +14,18 @@ __all__ = ["Publisher"]
 
 class Publisher:
     """
+    Description:
+    -----------
+
     Class used to send data to a Subscriber class that is to be plotted in live dynamic mode.
     It uses a socket connection that is dealt with in an auxiliary thread.
+
+    Usage:
+    ------
+
+    >>> publisher = Publisher(host, port)
+    >>> publisher.publish_msg("hello")
+    >>> publisher.publish_msg({"subplot_1": {"curve_1": np.random.rand(10)}})
     """
 
     host: str  # Hostname of the machine on which runs the Subscriber.
@@ -41,7 +51,7 @@ class Publisher:
                 break
 
         # connect SIGINT (signal sent when pressing ctrl+C or when killing the program) to stop the auxiliary thread and properly close the socket
-        signal.signal(signal.SIGINT, self._signal_handler)
+        signal.signal(signal.SIGINT, self._sigint_handler)
 
         # connect the socket
         self._publisher_socket = socket(AF_INET, SOCK_STREAM)
@@ -54,11 +64,14 @@ class Publisher:
         )
         self._publisher_thread.start()
 
-    def _print_status_message(self, msg):
-        if self.verbose:
-            print("[PUBLISHER] : " + msg)
-
     def publish_msg(self, msg: Union[str, dict]):
+        """
+        Publish a message to the Subscriber (embedded in a Plot) via the socket to which
+         it is connected.
+
+        :param msg: message to be sent, either a string that should only be STOP_SIGNAL
+        or a dictionary containing the data to be plotted
+        """
         self.msg_history.append(msg)
         self._msg_queue.put(msg)
         self._print_status_message(
@@ -67,7 +80,11 @@ class Publisher:
             )
         )
 
-    def _signal_handler(self, si, frame):
+    def _print_status_message(self, msg):
+        if self.verbose:
+            print("[PUBLISHER] : " + msg)
+
+    def _sigint_handler(self, si, frame):
         self._print_status_message("You pressed Ctrl+C!")
         self.stop = True
         self._print_status_message(self.msg_history)
@@ -77,14 +94,6 @@ class Publisher:
         self._print_status_message("Socket is closed")
         sleep(1)
         self._print_status_message("off")
-
-    # def get_all_queue_result(self):
-    #     result_list = []
-    #     while not self.queue.empty():
-    #         result_list.append(self.queue.get_nowait())
-    #
-    #     print(len(result_list))
-    #     return result_list
 
     def _publisher_thread_target(self, s):
         self._print_status_message("Server is ready ...")

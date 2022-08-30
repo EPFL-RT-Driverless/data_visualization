@@ -11,7 +11,7 @@ from matplotlib.figure import Figure
 from matplotlib.gridspec import GridSpec
 
 from .subscriber import launch_client
-from .constants import STOP_SIGNAL
+from .constants import STOP_SIGNAL, DEFAULT_HOST, DEFAULT_PORT
 
 __all__ = ["Plot", "PlotMode", "SubplotType", "CurveType", "CurvePlotStyle"]
 
@@ -44,7 +44,12 @@ class CurvePlotStyle(Enum):
 
 class Plot:
     """
-    # TODO: add docstring
+    Description:
+    -----------
+    This class can be used to plot the evolution of several measures throughout time. A
+    matplotlib figure is created containing a gridspec on which you can add subplots
+    taking one or several (contiguous) positions. In these subplots you can add several
+    curves with a great number of options of customization.
     """
 
     mode: PlotMode
@@ -71,8 +76,8 @@ class Plot:
         col_nbr: int,
         interval: Optional[int] = None,
         sampling_time: Optional[float] = None,
-        host: str = "127.0.0.1",
-        port: int = 1024,
+        host: str = DEFAULT_HOST,
+        port: int = DEFAULT_PORT,
     ):
         """
         Initializes the plot with an empty Gridspec of size row_nbr x col_nbr.
@@ -130,10 +135,7 @@ class Plot:
         :param unit: unit of the subplot. Should be a string
         :type unit: str
         :param show_unit: whether to show the unit of the subplot in the title or not.
-        :param curves: A dictionary of curves. The keys are the names of the curves and the
-            values are dictionaries with the following keys:
-            - data: the data to be plotted. None if the data is not yet known
-            - options: a dictionary of options for the plot
+        :param curves: A dictionary of curves.
         """
         # check that there is no plot at the specified position
         col_idx = _convert_to_contiguous_slice(col_idx)
@@ -253,10 +255,6 @@ class Plot:
         }
 
     def plot(self, show: bool = True, save: bool = False, save_path: str = None):
-        # for static, plot everything
-        # for dynamic, plot static curves and use _update_dynamic for the animation
-        # for live dynamic, plot static curves and use _update_live_dynamic for the animation
-        # the curves that are not plotted (right now) are actually plotted as empty lines
         for subplot_name, subplot in self._content.items():
             # set subplot title
             subplot["ax"].set_title(
@@ -299,6 +297,7 @@ class Plot:
                 self._update_dynamic,
                 frames=self._length_curves,
                 interval=self._interval,
+                repeat=False,
                 blit=True,
             )
         elif self.mode == PlotMode.LIVE_DYNAMIC:
@@ -307,6 +306,7 @@ class Plot:
                 self._update_live_dynamic,
                 frames=self._live_dynamic_generator,
                 interval=self._interval,
+                repeat=False,
                 blit=True,
             )
 
@@ -466,10 +466,6 @@ class Plot:
                         if self._sampling_time is not None:
                             xdata *= self._sampling_time
 
-                        # curve["line"].set_data(
-                        #     xdata, curve["data"] if live_dynamic else curve["data"][:frame]
-                        # )
-                        # print(curve["curve_type"], xdata.shape, curve["data"][:frame+1].shape)
                         curve["line"].set_data(
                             xdata,
                             curve["data"][: frame + 1]
@@ -500,6 +496,10 @@ class Plot:
                 else:
                     raise ValueError("Unknown subplot type: ", subplot["subplot_type"])
 
+            subplot["ax"].relim()
+            subplot["ax"].autoscale_view()
+            subplot["ax"].figure.canvas.draw()
+
         return artists
 
 
@@ -519,7 +519,3 @@ def _convert_to_contiguous_slice(idx: Union[slice, int, range]) -> slice:
         raise ValueError("idx must be a contiguous slice")
 
     return idx
-
-
-if __name__ == "__main__":
-    pass
