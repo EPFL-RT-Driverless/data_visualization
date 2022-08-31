@@ -1,14 +1,14 @@
 #  Copyright (c) 2022. Tudor Oancea, Mattéo Berthet, EPFL Racing Team Driverless
 import pickle
-import signal
+import struct
 from queue import Queue
 from socket import socket, AF_INET, SOCK_STREAM
 from threading import Thread
 from time import sleep
-import sys
-import struct
-
 from typing import Union
+
+import cv2
+
 from .constants import STOP_SIGNAL, DEFAULT_HOST, DEFAULT_PORT
 
 __all__ = ["Publisher"]
@@ -52,9 +52,6 @@ class Publisher:
                 self.verbose = True
                 break
 
-        # connect SIGINT (signal sent when pressing ctrl+C or when killing the program) to stop the auxiliary thread and properly close the socket
-        signal.signal(signal.SIGINT, self._sigint_handler)
-
         # connect the socket
         self._publisher_socket = socket(AF_INET, SOCK_STREAM)
         self._publisher_socket.bind((host, port))
@@ -74,8 +71,13 @@ class Publisher:
         :param msg: message to be sent, either a string that should only be STOP_SIGNAL
         or a dictionary containing the data to be plotted
         """
-        self.msg_history.append(msg)
-        self._msg_queue.put(msg)
+        if type(msg) == tuple:
+            new_msg = (msg[0], cv2.imencode(".jpeg", msg[1], [60, 90])[1])
+        else:
+            new_msg = msg
+
+        self.msg_history.append(new_msg)
+        self._msg_queue.put(new_msg)
         self._print_status_message(
             "added message to publish queue, new size: {}".format(
                 self._msg_queue.qsize()
@@ -86,20 +88,19 @@ class Publisher:
         if self.verbose:
             print("[PUBLISHER] : " + msg)
 
-    def _sigint_handler(self, si, frame):
-        self._print_status_message("You pressed Ctrl+C!")
+    def terminate(self):
+        self._print_status_message("Terminating...")
         self.stop = True
-        self._print_status_message(self.msg_history)
+        # self._print_status_message(self.msg_history)
         self._publisher_thread.join()
         self._print_status_message("Server thread is joined")
         self._publisher_socket.close()
         self._print_status_message("Socket is closed")
-        sleep(1)
         self._print_status_message("off")
 
     def send_msg(self, client, msg):
         # Prefix each message with a 4-byte length (network byte order)
-        msg = struct.pack('>I', len(msg)) + msg
+        msg = struct.pack(">I", len(msg)) + msg
         client.sendall(msg)
 
     def _publisher_thread_target(self, s):
@@ -109,28 +110,20 @@ class Publisher:
         client, adr = s.accept()
 
         self._print_status_message("Connection established")
-        a = 0
         while True:
             if self.stop:
+                self.send_msg(client, pickle.dumps(STOP_SIGNAL))
                 self._print_status_message("Switching off...")
                 break
-                # self._print_status_message()(f'Connection to {adr} established')
 
             if self._msg_queue.empty():
-                # self._print_status_message()("Queue is empty")
-                # client.send(pickle.dumps("empty"))
                 sleep(0.1)
             else:
                 item = self._msg_queue.get_nowait()
-                # client.send(pickle.dumps(self.get_all_queue_result()))
                 data = pickle.dumps(item)
-                # self._print_status_message()(data)
-                # self._print_status_message()("presend")
-                # self.s.sendall(struct.pack(">L", size) + data) #'''struct.pack(">L") + '''
-                #client.sendall(pickle.dumps(sys.getsizeof(data) + a))
                 self.send_msg(client, data)
                 self._print_status_message("sent")
-                self._print_status_message(len(data))
+                self._print_status_message(str(len(data)))
                 if item == STOP_SIGNAL:
                     print("Switching off...")
                     break

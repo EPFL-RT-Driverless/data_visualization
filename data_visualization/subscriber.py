@@ -1,9 +1,8 @@
 #  Copyright (c) 2022. Tudor Oancea, Mattéo Berthet EPFL Racing Team Driverless
 import pickle
-from socket import socket, AF_INET, SOCK_STREAM
-from multiprocessing import Queue
-import warnings
 import struct
+from multiprocessing import Queue
+from socket import socket, AF_INET, SOCK_STREAM
 
 from .constants import DEFAULT_HOST, DEFAULT_PORT, STOP_SIGNAL
 
@@ -60,9 +59,8 @@ class Subscriber:
         raw_msglen = self.recvall(4)
         if not raw_msglen:
             return None
-        msglen = struct.unpack('>I', raw_msglen)[0]
+        msglen = struct.unpack(">I", raw_msglen)[0]
         # Read the message data
-        print(msglen)
         return self.recvall(msglen)
 
     def recvall(self, n):
@@ -77,16 +75,18 @@ class Subscriber:
 
     def run(self):
         while True:
-            #stream = self._subscriber_socket.recv(self.msg_size)
             stream = self.recv_msg()
             try:
                 data = pickle.loads(stream)
             except pickle.PickleError:
                 data = None
-                warnings.warn("pickle error (message size may be too short)")
-            #print(data)
+                self._print_status_message(
+                    "pickle error (message size may be too short)"
+                )
+
             if data == STOP_SIGNAL:
-                print("Switching off...")
+                self._print_status_message("Switching off...")
+                self._msg_queue.put(STOP_SIGNAL)
                 self._subscriber_socket.close()
                 break
             self._msg_queue.put(data)

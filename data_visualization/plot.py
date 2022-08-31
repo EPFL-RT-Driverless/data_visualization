@@ -4,17 +4,27 @@ import warnings
 from enum import Enum
 from typing import Optional, Union
 
+import cv2
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.figure import Figure
 from matplotlib.gridspec import GridSpec
-import cv2
 
-from .subscriber import launch_client
 from .constants import STOP_SIGNAL, DEFAULT_HOST, DEFAULT_PORT
+from .subscriber import launch_client
 
 __all__ = ["Plot", "PlotMode", "SubplotType", "CurveType", "CurvePlotStyle"]
+
+
+class MyFuncAnimation(FuncAnimation):
+    def _end_redraw(self, event):
+        # Now that the redraw has happened, do the post draw flushing and
+        # blit handling. Then re-enable all of the original events.
+        self._post_draw(None, True)
+        self.event_source.start()
+        self._fig.canvas.mpl_disconnect(self._resize_id)
+        self._resize_id = self._fig.canvas.mpl_connect("resize_event", self._on_resize)
 
 
 class PlotMode(Enum):
@@ -78,6 +88,7 @@ class Plot:
         mode: PlotMode,
         row_nbr: int,
         col_nbr: int,
+        figsize: tuple = (15, 6),
         interval: Optional[int] = None,
         sampling_time: Optional[float] = None,
         host: str = DEFAULT_HOST,
@@ -98,7 +109,7 @@ class Plot:
         self._interval = interval
         self._sampling_time = sampling_time
 
-        self._fig = plt.figure(figsize=(15, 6))
+        self._fig = plt.figure(figsize=figsize)
         self._gridspec = self._fig.add_gridspec(row_nbr, col_nbr)
         self._plot_positions = np.zeros((row_nbr, col_nbr), dtype=bool)
         self._content = {}
@@ -114,11 +125,8 @@ class Plot:
             self._live_dynamic_data_queue = mp.Queue()
             socket_proc = mp.Process(
                 target=launch_client,
-                args=(
-                    self._live_dynamic_data_queue,
-                    host,
-                    port,
-                ),
+                args=(self._live_dynamic_data_queue, host, port),
+                # kwargs={"verbose": True},
             )
             socket_proc.start()
             self._no_more_values = False
@@ -302,9 +310,11 @@ class Plot:
 
                 curve["line"] = line
 
+        plt.tight_layout()
+
         # create animation if necessary
         if self.mode == PlotMode.DYNAMIC:
-            self._anim = FuncAnimation(
+            self._anim = MyFuncAnimation(
                 self._fig,
                 self._update_plot_dynamic,
                 frames=self._length_curves,
@@ -313,7 +323,7 @@ class Plot:
                 blit=True,
             )
         elif self.mode == PlotMode.LIVE_DYNAMIC:
-            self._anim = FuncAnimation(
+            self._anim = MyFuncAnimation(
                 self._fig,
                 self._update_plot_live_dynamic,
                 frames=self._live_dynamic_generator,
@@ -478,6 +488,7 @@ class Plot:
                             return False
 
                     if received_data == STOP_SIGNAL:
+                        print("[PLOT] : Received stop signal")
                         self._no_more_values = True
                         break
                     elif isinstance(received_data, dict):
@@ -498,14 +509,8 @@ class Plot:
 
                         # update the data for the image
                         try:
-                            assert (
-                                isinstance(received_data[1], np.ndarray)
-                                and len(received_data[1].shape) == 3
-                                and received_data[1].shape[2] == 3
-                                and received_data[1].dtype == np.uint8
-                            )
-                            last_received_image = received_data[1]
-                        except AssertionError:
+                            last_received_image = cv2.imdecode(received_data[1], 1)
+                        except Exception:
                             print("bruh")
                             pass
                     else:
