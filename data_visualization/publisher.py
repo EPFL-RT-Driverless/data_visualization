@@ -5,9 +5,11 @@ from queue import Queue
 from socket import socket, AF_INET, SOCK_STREAM
 from threading import Thread
 from time import sleep
+import sys
+import struct
 
 from typing import Union
-from .constants import DEFAULT_HOST, DEFAULT_PORT
+from .constants import STOP_SIGNAL, DEFAULT_HOST, DEFAULT_PORT
 
 __all__ = ["Publisher"]
 
@@ -64,7 +66,7 @@ class Publisher:
         )
         self._publisher_thread.start()
 
-    def publish_msg(self, msg: Union[str, dict]):
+    def publish_msg(self, msg: Union[str, dict, tuple]):
         """
         Publish a message to the Subscriber (embedded in a Plot) via the socket to which
          it is connected.
@@ -95,6 +97,11 @@ class Publisher:
         sleep(1)
         self._print_status_message("off")
 
+    def send_msg(self, client, msg):
+        # Prefix each message with a 4-byte length (network byte order)
+        msg = struct.pack('>I', len(msg)) + msg
+        client.sendall(msg)
+
     def _publisher_thread_target(self, s):
         self._print_status_message("Server is ready ...")
 
@@ -102,6 +109,7 @@ class Publisher:
         client, adr = s.accept()
 
         self._print_status_message("Connection established")
+        a = 0
         while True:
             if self.stop:
                 self._print_status_message("Switching off...")
@@ -113,14 +121,19 @@ class Publisher:
                 # client.send(pickle.dumps("empty"))
                 sleep(0.1)
             else:
+                item = self._msg_queue.get_nowait()
                 # client.send(pickle.dumps(self.get_all_queue_result()))
-                data = pickle.dumps(self._msg_queue.get_nowait())
-                # size = len(data)
+                data = pickle.dumps(item)
                 # self._print_status_message()(data)
                 # self._print_status_message()("presend")
                 # self.s.sendall(struct.pack(">L", size) + data) #'''struct.pack(">L") + '''
-                client.sendall(data)
+                #client.sendall(pickle.dumps(sys.getsizeof(data) + a))
+                self.send_msg(client, data)
                 self._print_status_message("sent")
+                self._print_status_message(len(data))
+                if item == STOP_SIGNAL:
+                    print("Switching off...")
+                    break
 
         client.close()
         self._print_status_message("Connection closed")

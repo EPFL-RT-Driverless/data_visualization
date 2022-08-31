@@ -3,8 +3,9 @@ import pickle
 from socket import socket, AF_INET, SOCK_STREAM
 from multiprocessing import Queue
 import warnings
+import struct
 
-from .constants import DEFAULT_HOST, DEFAULT_PORT
+from .constants import DEFAULT_HOST, DEFAULT_PORT, STOP_SIGNAL
 
 __all__ = ["Subscriber", "launch_client"]
 
@@ -54,15 +55,40 @@ class Subscriber:
         if self.verbose:
             print("[SUBSCRIBER] : " + msg)
 
+    def recv_msg(self):
+        # Read message length and unpack it into an integer
+        raw_msglen = self.recvall(4)
+        if not raw_msglen:
+            return None
+        msglen = struct.unpack('>I', raw_msglen)[0]
+        # Read the message data
+        print(msglen)
+        return self.recvall(msglen)
+
+    def recvall(self, n):
+        # Helper function to recv n bytes or return None if EOF is hit
+        data = bytearray()
+        while len(data) < n:
+            packet = self._subscriber_socket.recv(n - len(data))
+            if not packet:
+                return None
+            data.extend(packet)
+        return data
+
     def run(self):
         while True:
-            stream = self._subscriber_socket.recv(self.msg_size)
+            #stream = self._subscriber_socket.recv(self.msg_size)
+            stream = self.recv_msg()
             try:
                 data = pickle.loads(stream)
-            except:
+            except pickle.PickleError:
                 data = None
                 warnings.warn("pickle error (message size may be too short)")
-
+            #print(data)
+            if data == STOP_SIGNAL:
+                print("Switching off...")
+                self._subscriber_socket.close()
+                break
             self._msg_queue.put(data)
             self._print_status_message("received message and added it to queue")
 
@@ -71,7 +97,7 @@ def launch_client(
     q: Queue,
     host: str = DEFAULT_HOST,
     port: int = DEFAULT_PORT,
-    msg_size: int = 4096,
+    msg_size: int = 2 << 10,
     **kwargs,
 ):
     client = Subscriber(q, host, port, msg_size, **kwargs)

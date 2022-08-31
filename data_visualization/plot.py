@@ -9,6 +9,7 @@ from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.figure import Figure
 from matplotlib.gridspec import GridSpec
+import cv2
 
 from .subscriber import launch_client
 from .constants import STOP_SIGNAL, DEFAULT_HOST, DEFAULT_PORT
@@ -65,6 +66,9 @@ class Plot:
     _anim: Optional[FuncAnimation]
     _length_curves: int
 
+    # stuff for Dynamic and Live Dynamic modes
+    _redrawn_artists: Optional[list]
+
     # stuff for Live dynamic mode
     _live_dynamic_data_queue: Optional[mp.Queue]
     _no_more_values: Optional[bool]
@@ -94,12 +98,17 @@ class Plot:
         self._interval = interval
         self._sampling_time = sampling_time
 
-        self._fig = plt.figure()
+        self._fig = plt.figure(figsize=(15, 6))
         self._gridspec = self._fig.add_gridspec(row_nbr, col_nbr)
         self._plot_positions = np.zeros((row_nbr, col_nbr), dtype=bool)
         self._content = {}
         self._anim = None
         self._length_curves = 0
+
+        if self.mode == PlotMode.DYNAMIC or self.mode == PlotMode.LIVE_DYNAMIC:
+            self._redrawn_artists = []
+        else:
+            self._redrawn_artists = None
 
         if self.mode == PlotMode.LIVE_DYNAMIC:
             self._live_dynamic_data_queue = mp.Queue()
@@ -113,6 +122,9 @@ class Plot:
             )
             socket_proc.start()
             self._no_more_values = False
+        else:
+            self._live_dynamic_data_queue = None
+            self._no_more_values = None
 
     def add_subplot(
         self,
@@ -152,7 +164,6 @@ class Plot:
 
         # create the subplot
         ax = self._fig.add_subplot(self._gridspec[row_idx, col_idx])
-        ax.autoscale_view()
         if subplot_type == SubplotType.SPATIAL:
             plt.axis("equal")
 
@@ -287,6 +298,7 @@ class Plot:
                         )
                 else:
                     (line,) = curve["plot_fun"]([], [], **curve["mpl_options"])
+                    self._redrawn_artists.append(line)
 
                 curve["line"] = line
 
@@ -294,7 +306,7 @@ class Plot:
         if self.mode == PlotMode.DYNAMIC:
             self._anim = FuncAnimation(
                 self._fig,
-                self._update_dynamic,
+                self._update_plot_dynamic,
                 frames=self._length_curves,
                 interval=self._interval,
                 repeat=False,
@@ -303,9 +315,9 @@ class Plot:
         elif self.mode == PlotMode.LIVE_DYNAMIC:
             self._anim = FuncAnimation(
                 self._fig,
-                self._update_live_dynamic,
+                self._update_plot_live_dynamic,
                 frames=self._live_dynamic_generator,
-                interval=self._interval,
+                interval=1,
                 repeat=False,
                 blit=True,
             )
@@ -329,178 +341,236 @@ class Plot:
             yield n
             n += 1
 
-    def _update_dynamic(self, frame: int):
+    def _update_plot_dynamic(self, frame: int):
         if self.mode != PlotMode.DYNAMIC:
             raise ValueError("_update_dynamic should only be called in dynamic mode")
         else:
-            return self._update_common(frame, live_dynamic=False)
+            self._update_plot_common(frame)
+            return self._redrawn_artists
 
-    def _update_live_dynamic(self, frame):
+    def _update_plot_live_dynamic(self, frame: int):
         if self.mode != PlotMode.LIVE_DYNAMIC:
             raise ValueError(
                 "_update_live_dynamic should only be called in live dynamic mode"
             )
         else:
-            # first fetch new data via socket
-            di = self._live_dynamic_data_queue.get(block=True)
-            if di == STOP_SIGNAL:
-                self._no_more_values = True
-            else:
-                assert type(di) is dict
-                for subplot_name, subplot in di.items():
-                    for curve_name, curve in subplot.items():
-
-                        just_assign_dont_worry = (
-                            self._content[subplot_name]["curves"][curve_name]["data"]
-                            is None
-                        )
-
-                        if (
-                            self._content[subplot_name]["subplot_type"]
-                            == SubplotType.SPATIAL
-                        ):
-                            if (
-                                self._content[subplot_name]["curves"][curve_name][
-                                    "curve_type"
-                                ]
-                                == CurveType.REGULAR
-                            ):
-                                assert type(curve) is np.ndarray
-                                assert curve.shape == (2,)
-                                if just_assign_dont_worry:
-                                    self._content[subplot_name]["curves"][curve_name][
-                                        "data"
-                                    ] = np.expand_dims(curve, 1)
-                                else:
-                                    self._content[subplot_name]["curves"][curve_name][
-                                        "data"
-                                    ] = np.append(
+            have_to_update = False
+            last_received_image = None
+            while not self._live_dynamic_data_queue.empty():
+                # first fetch new data via socket
+                received_data = self._live_dynamic_data_queue.get(block=True)
+                if received_data is None:
+                    # There have been an UnpicklingError so we don't have new data and do not update the plot
+                    pass
+                else:
+                    # define the function that will actually update the content of the plot, will be called with the
+                    # appropriate dict
+                    def update_content(di: dict):
+                        try:
+                            # first extract the data from the dict and check the types and shapes of everything
+                            new_data = {}
+                            for subplot_name, subplot in di.items():
+                                new_data[subplot_name] = {}
+                                for curve_name, curve in subplot.items():
+                                    new_data[subplot_name][curve_name] = None
+                                    just_assign_dont_worry = (
                                         self._content[subplot_name]["curves"][
                                             curve_name
-                                        ]["data"],
-                                        np.expand_dims(curve, 1),
-                                        axis=1,
+                                        ]["data"]
+                                        is None
                                     )
-                            elif (
-                                self._content[subplot_name]["curves"][curve_name][
-                                    "curve_type"
-                                ]
-                                == CurveType.PREDICTION
-                            ):
-                                assert type(curve) is np.ndarray
-                                if not just_assign_dont_worry:
-                                    assert (
-                                        curve.shape
-                                        == self._content[subplot_name]["curves"][
-                                            curve_name
-                                        ]["data"].shape
-                                    )
-                                self._content[subplot_name]["curves"][curve_name][
-                                    "data"
-                                ] = curve
-                            else:
-                                raise ValueError("big bruh")
-                        elif (
-                            self._content[subplot_name]["subplot_type"]
-                            == SubplotType.TEMPORAL
-                        ):
-                            if (
-                                self._content[subplot_name]["curves"][curve_name][
-                                    "curve_type"
-                                ]
-                                == CurveType.REGULAR
-                            ):
-                                assert type(curve) is float
-                                if just_assign_dont_worry:
-                                    self._content[subplot_name]["curves"][curve_name][
-                                        "data"
-                                    ] = np.expand_dims(curve, 0)
-                                else:
-                                    self._content[subplot_name]["curves"][curve_name][
-                                        "data"
-                                    ] = np.append(
+
+                                    if (
+                                        self._content[subplot_name]["subplot_type"]
+                                        == SubplotType.SPATIAL
+                                    ):
+                                        if (
+                                            self._content[subplot_name]["curves"][
+                                                curve_name
+                                            ]["curve_type"]
+                                            == CurveType.REGULAR
+                                        ):
+                                            assert type(curve) is np.ndarray
+                                            assert curve.shape == (2,)
+                                            if just_assign_dont_worry:
+                                                new_data[subplot_name][
+                                                    curve_name
+                                                ] = np.expand_dims(curve, 1)
+                                            else:
+                                                new_data[subplot_name][
+                                                    curve_name
+                                                ] = np.append(
+                                                    self._content[subplot_name][
+                                                        "curves"
+                                                    ][curve_name]["data"],
+                                                    np.expand_dims(curve, 1),
+                                                    axis=1,
+                                                )
+                                        elif (
+                                            self._content[subplot_name]["curves"][
+                                                curve_name
+                                            ]["curve_type"]
+                                            == CurveType.PREDICTION
+                                        ):
+                                            assert type(curve) is np.ndarray
+                                            if not just_assign_dont_worry:
+                                                assert (
+                                                    curve.shape
+                                                    == self._content[subplot_name][
+                                                        "curves"
+                                                    ][curve_name]["data"].shape
+                                                )
+                                            new_data[subplot_name][curve_name] = curve
+                                        else:
+                                            raise ValueError("big bruh")
+                                    elif (
+                                        self._content[subplot_name]["subplot_type"]
+                                        == SubplotType.TEMPORAL
+                                    ):
+                                        if (
+                                            self._content[subplot_name]["curves"][
+                                                curve_name
+                                            ]["curve_type"]
+                                            == CurveType.REGULAR
+                                        ):
+                                            assert type(curve) is float
+                                            if just_assign_dont_worry:
+                                                self._content[subplot_name]["curves"][
+                                                    curve_name
+                                                ]["data"] = np.expand_dims(curve, 0)
+                                            else:
+                                                new_data[subplot_name][
+                                                    curve_name
+                                                ] = np.append(
+                                                    self._content[subplot_name][
+                                                        "curves"
+                                                    ][curve_name]["data"],
+                                                    np.expand_dims(curve, 0),
+                                                    axis=0,
+                                                )
+                                        elif (
+                                            self._content[subplot_name]["curves"][
+                                                curve_name
+                                            ]["curve_type"]
+                                            == CurveType.PREDICTION
+                                        ):
+                                            assert type(curve) is np.ndarray
+                                            assert len(curve.shape) == 1
+                                            new_data[subplot_name][curve_name] = curve
+                                        else:
+                                            raise ValueError("big bruh")
+                                    else:
+                                        raise ValueError("bruh")
+
+                            # if everything is in order update the content
+                            for subplot_name, subplot in new_data.items():
+                                for curve_name, curve in subplot.items():
+                                    if curve is not None:
                                         self._content[subplot_name]["curves"][
                                             curve_name
-                                        ]["data"],
-                                        np.expand_dims(curve, 0),
-                                        axis=0,
-                                    )
-                            elif (
-                                self._content[subplot_name]["curves"][curve_name][
-                                    "curve_type"
-                                ]
-                                == CurveType.PREDICTION
-                            ):
-                                assert type(curve) is np.ndarray
-                                assert len(curve.shape) == 1
-                                # if not just_assign_dont_worry:
-                                #     assert (
-                                #         curve.shape
-                                #         == self._content[subplot_name]["curves"][
-                                #             curve_name
-                                #         ]["data"].shape
-                                #     )
-                                self._content[subplot_name]["curves"][curve_name][
-                                    "data"
-                                ] = curve
-                            else:
-                                raise ValueError("big bruh")
-                        else:
-                            raise ValueError("bruh")
+                                        ]["data"] = curve
 
-            # update the plot
-            return self._update_common(frame, live_dynamic=True)
+                            # update the length of the curves
+                            self._length_curves += 1
+                            return True
+                        except AssertionError:
+                            # we don't update the plot because some of the data were not
+                            return False
 
-    def _update_common(self, frame: int, live_dynamic: bool = False):
-        artists = []
+                    if received_data == STOP_SIGNAL:
+                        self._no_more_values = True
+                        break
+                    elif isinstance(received_data, dict):
+                        try:
+                            if update_content(received_data):
+                                have_to_update = True
+                        except AssertionError:
+                            pass
+
+                    elif isinstance(received_data, tuple):
+                        # update the content of the plot
+                        try:
+                            assert isinstance(received_data[0], dict)
+                            if update_content(received_data[0]):
+                                have_to_update = True
+                        except AssertionError:
+                            pass
+
+                        # update the data for the image
+                        try:
+                            assert (
+                                isinstance(received_data[1], np.ndarray)
+                                and len(received_data[1].shape) == 3
+                                and received_data[1].shape[2] == 3
+                                and received_data[1].dtype == np.uint8
+                            )
+                            last_received_image = received_data[1]
+                        except AssertionError:
+                            print("bruh")
+                            pass
+                    else:
+                        # the data is not a string, a dict or a tuple, so we don't update the plot
+                        pass
+
+            if have_to_update:
+                self._update_plot_common(self._length_curves)
+
+            if last_received_image is not None:
+                cv2.imshow("image", last_received_image)
+                cv2.waitKey(1)
+
+        return self._redrawn_artists
+
+    def _update_plot_common(self, curves_size: int):
+        """
+        Redraws all the Regular and Prediction curves in all the subplots. Supposes that the data has already been
+        updated beforehand.
+
+        :param curves_size: the common size of all the regular curves
+        """
         for subplot_name, subplot in self._content.items():
             for curve_name, curve in subplot["curves"].items():
                 if subplot["subplot_type"] == SubplotType.TEMPORAL:
                     if curve["curve_type"] != CurveType.STATIC:
                         if curve["curve_type"] == CurveType.REGULAR:
-                            xdata = np.arange(frame + 1)
+                            xdata = np.arange(curves_size)
                         else:
                             # we have curve["curve_type"] == CurveType.PREDICTION
-                            xdata = np.arange(curve["data"].size) + frame
+                            xdata = np.arange(curve["data"].size) + curves_size - 1
 
                         if self._sampling_time is not None:
                             xdata *= self._sampling_time
 
                         curve["line"].set_data(
                             xdata,
-                            curve["data"][: frame + 1]
+                            curve["data"][:curves_size]
                             if curve["curve_type"] == CurveType.REGULAR
                             else curve["data"],
                         )
-
-                        artists.append(curve["line"])
 
                 elif subplot["subplot_type"] == SubplotType.SPATIAL:
                     if curve["curve_type"] != CurveType.STATIC:
                         if curve["curve_type"] == CurveType.REGULAR:
                             curve["line"].set_data(
-                                curve["data"][0, : frame + 1],
-                                curve["data"][1, : frame + 1],
+                                curve["data"][0, :curves_size],
+                                curve["data"][1, :curves_size],
                             )
                         elif curve["curve_type"] == CurveType.PREDICTION:
                             curve["line"].set_data(
-                                curve["data"][0, :, frame]
-                                if not live_dynamic
+                                curve["data"][0, :, curves_size - 1]
+                                if self.mode == PlotMode.DYNAMIC
                                 else curve["data"][0, :],
-                                curve["data"][1, :, frame]
-                                if not live_dynamic
+                                curve["data"][1, :, curves_size - 1]
+                                if self.mode == PlotMode.DYNAMIC
                                 else curve["data"][1, :],
                             )
 
-                        artists.append(curve["line"])
                 else:
                     raise ValueError("Unknown subplot type: ", subplot["subplot_type"])
 
             subplot["ax"].relim()
             subplot["ax"].autoscale_view()
             subplot["ax"].figure.canvas.draw()
-
-        return artists
 
 
 def _convert_to_contiguous_slice(idx: Union[slice, int, range]) -> slice:

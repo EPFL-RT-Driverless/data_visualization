@@ -1,0 +1,3 @@
+[submodule "external/fsds_client"]
+	path = external/fsds_client
+	url = https://github.com/EPFL-RT-Driverless/fsds_client/
