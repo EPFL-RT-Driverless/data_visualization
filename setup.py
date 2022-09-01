@@ -5,6 +5,8 @@ with open("README.md") as f:
 
 with open("requirements.txt") as f:
     requirements = f.read().splitlines()
+    # delete lines starting with # and empty lines
+    requirements = [line for line in requirements if not line.startswith("#") and line]
 
 setup(
     name="data_visualization",
@@ -23,5 +25,5 @@ setup(
         "Programming Language :: Python :: 3",
         "Private :: Do Not Upload",
     ],
-    requires=requirements,
+    install_requires=requirements,
 )

@@ -229,14 +229,22 @@ class Plot(ErrorMessageMixin):
                         if self._length_curves == 0:
                             self._length_curves = curve_values["data"].shape[-1]
                         else:
-                            assert self._length_curves == curve_values["data"].shape[-1]
+                            assert (
+                                self._length_curves == curve_values["data"].shape[-1]
+                            ), "All curves must have the same length but this one has length {} while others have {}".format(
+                                curve_values["data"].shape[-1], self._length_curves
+                            )
                 elif curve_values["curve_type"] == CurveType.PREDICTION:
                     if self.mode != PlotMode.LIVE_DYNAMIC:
                         assert curve_values["data"].ndim == 2
                         if self._length_curves == 0:
                             self._length_curves = curve_values["data"].shape[-1]
                         else:
-                            assert self._length_curves == curve_values["data"].shape[-1]
+                            assert (
+                                self._length_curves == curve_values["data"].shape[-1]
+                            ), "All curves must have the same length but this one has length {} while others have {}".format(
+                                curve_values["data"].shape[-1], self._length_curves
+                            )
                 else:
                     raise ValueError("Unknown curve type: ", curve_values["curve_type"])
             elif subplot_type == SubplotType.SPATIAL:
@@ -251,7 +259,11 @@ class Plot(ErrorMessageMixin):
                         if self._length_curves == 0:
                             self._length_curves = curve_values["data"].shape[-1]
                         else:
-                            assert self._length_curves == curve_values["data"].shape[-1]
+                            assert (
+                                self._length_curves == curve_values["data"].shape[-1]
+                            ), "All curves must have the same length but this one has length {} while others have {}".format(
+                                curve_values["data"].shape[-1], self._length_curves
+                            )
 
                 elif curve_values["curve_type"] == CurveType.PREDICTION:
                     if self.mode != PlotMode.LIVE_DYNAMIC:
@@ -262,7 +274,11 @@ class Plot(ErrorMessageMixin):
                         if self._length_curves == 0:
                             self._length_curves = curve_values["data"].shape[-1]
                         else:
-                            assert self._length_curves == curve_values["data"].shape[-1]
+                            assert (
+                                self._length_curves == curve_values["data"].shape[-1]
+                            ), "All curves must have the same length but this one has length {} while others have {}".format(
+                                curve_values["data"].shape[-1], self._length_curves
+                            )
                 else:
                     raise ValueError("Unknown curve type: ", curve_values["curve_type"])
             else:
