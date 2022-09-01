@@ -3,7 +3,13 @@ import numpy as np
 from data_visualization import *
 
 if __name__ == "__main__":
-    plot = Plot(row_nbr=1, col_nbr=2, mode=PlotMode.LIVE_DYNAMIC, interval=100)
+    plot = Plot(
+        row_nbr=1,
+        col_nbr=2,
+        mode=PlotMode.LIVE_DYNAMIC,
+        interval=100,
+        verbose=False,
+    )
     plot.add_subplot(
         subplot_name="temporal",
         col_idx=0,

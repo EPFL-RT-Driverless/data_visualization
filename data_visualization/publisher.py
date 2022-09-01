@@ -9,12 +9,12 @@ from typing import Union
 
 import cv2
 
-from .constants import STOP_SIGNAL, DEFAULT_HOST, DEFAULT_PORT
+from .constants import *
 
 __all__ = ["Publisher"]
 
 
-class Publisher:
+class Publisher(ErrorMessageMixin):
     """
     Description:
     -----------
@@ -40,17 +40,12 @@ class Publisher:
     verbose: bool  # if True, print the status messages
 
     def __init__(self, host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, **kwargs):
+        super().__init__(**kwargs)
         self.host = host
         self.port = port
         self.stop = False
         self._msg_queue = Queue()
         self.msg_history = []
-
-        self.verbose = False
-        for possible_kw in ["debug", "verbose"]:
-            if possible_kw in kwargs and kwargs[possible_kw]:
-                self.verbose = True
-                break
 
         # connect the socket
         self._publisher_socket = socket(AF_INET, SOCK_STREAM)
@@ -83,10 +78,6 @@ class Publisher:
                 self._msg_queue.qsize()
             )
         )
-
-    def _print_status_message(self, msg):
-        if self.verbose:
-            print("[PUBLISHER] : " + msg)
 
     def terminate(self):
         self._print_status_message("Terminating...")

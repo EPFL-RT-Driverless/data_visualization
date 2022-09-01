@@ -4,18 +4,17 @@ import struct
 from multiprocessing import Queue
 from socket import socket, AF_INET, SOCK_STREAM
 
-from .constants import DEFAULT_HOST, DEFAULT_PORT, STOP_SIGNAL
+from .constants import *
 
 __all__ = ["Subscriber", "launch_client"]
 
 
-class Subscriber:
+class Subscriber(ErrorMessageMixin):
     host: str
     port: int
     msg_size: int
     _msg_queue: Queue
     _subscriber_socket: socket
-    verbose: bool
 
     def __init__(
         self,
@@ -25,16 +24,11 @@ class Subscriber:
         msg_size: int = 4096,
         **kwargs,
     ):
+        super().__init__(**kwargs)
         self.host = host
         self.port = port
         self._msg_queue = q
         self.msg_size = msg_size
-
-        self.verbose = False
-        for possible_kw in ["debug", "verbose"]:
-            if possible_kw in kwargs:
-                self.verbose = True
-                break
 
         # connect to the socket
         connected = False
@@ -44,15 +38,11 @@ class Subscriber:
                 self._subscriber_socket = socket(AF_INET, SOCK_STREAM)
                 self._subscriber_socket.connect((self.host, self.port))
                 connected = True
-            except:
+            except OSError:
                 # Do nothing, just try again
                 pass
 
         self._print_status_message("connected !")
-
-    def _print_status_message(self, msg):
-        if self.verbose:
-            print("[SUBSCRIBER] : " + msg)
 
     def recv_msg(self):
         # Read message length and unpack it into an integer

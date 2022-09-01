@@ -11,7 +11,7 @@ from matplotlib.animation import FuncAnimation
 from matplotlib.figure import Figure
 from matplotlib.gridspec import GridSpec
 
-from .constants import STOP_SIGNAL, DEFAULT_HOST, DEFAULT_PORT
+from .constants import *
 from .subscriber import launch_client
 
 __all__ = ["Plot", "PlotMode", "SubplotType", "CurveType", "CurvePlotStyle"]
@@ -53,7 +53,7 @@ class CurvePlotStyle(Enum):
     LOGLOG = 5
 
 
-class Plot:
+class Plot(ErrorMessageMixin):
     """
     Description:
     -----------
@@ -93,6 +93,7 @@ class Plot:
         sampling_time: Optional[float] = None,
         host: str = DEFAULT_HOST,
         port: int = DEFAULT_PORT,
+        **kwargs,
     ):
         """
         Initializes the plot with an empty Gridspec of size row_nbr x col_nbr.
@@ -103,6 +104,7 @@ class Plot:
         :param interval: interval between frames in milliseconds, only needed for DYNAMIC and LIVE_DYNAMIC
         :param sampling_time: sampling time used in the experiment, only needed if the temporal subplots need to have an x axis with time instead of number of iteration
         """
+        super().__init__(**kwargs)
         self.mode = mode
         self._row_nbr = row_nbr
         self._col_nbr = col_nbr
@@ -126,7 +128,7 @@ class Plot:
             socket_proc = mp.Process(
                 target=launch_client,
                 args=(self._live_dynamic_data_queue, host, port),
-                # kwargs={"verbose": True},
+                kwargs=kwargs,
             )
             socket_proc.start()
             self._no_more_values = False
@@ -305,13 +307,13 @@ class Plot:
                             (line,) = curve["plot_fun"](
                                 curve["data"][0, :],
                                 curve["data"][1, :],
-                                **curve["mpl_options"]
+                                **curve["mpl_options"],
                             )
                         else:
                             line = curve["plot_fun"](
                                 curve["data"][0, :],
                                 curve["data"][1, :],
-                                **curve["mpl_options"]
+                                **curve["mpl_options"],
                             )
 
                     else:
@@ -450,7 +452,9 @@ class Plot:
                                                 )
                                             new_data[subplot_name][curve_name] = curve
                                         else:
-                                            raise ValueError("big bruh")
+                                            self._print_status_message(
+                                                "You sent data for a curve that is not regular or prediction, ignoring"
+                                            )
                                     elif (
                                         self._content[subplot_name]["subplot_type"]
                                         == SubplotType.TEMPORAL
@@ -486,7 +490,9 @@ class Plot:
                                             assert len(curve.shape) == 1
                                             new_data[subplot_name][curve_name] = curve
                                         else:
-                                            raise ValueError("big bruh")
+                                            self._print_status_message(
+                                                "You sent data for a curve that is not regular or prediction, ignoring"
+                                            )
                                     else:
                                         raise ValueError("bruh")
 
@@ -506,7 +512,7 @@ class Plot:
                             return False
 
                     if received_data == STOP_SIGNAL:
-                        print("[PLOT] : Received stop signal")
+                        self._print_status_message("Received stop signal")
                         self._no_more_values = True
                         break
                     elif isinstance(received_data, dict):
@@ -529,7 +535,7 @@ class Plot:
                         try:
                             last_received_image = cv2.imdecode(received_data[1], 1)
                         except Exception:
-                            print("bruh")
+                            self._print_status_message("Received invalid image")
                             pass
                     else:
                         # the data is not a string, a dict or a tuple, so we don't update the plot
