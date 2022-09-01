@@ -108,7 +108,6 @@ class Plot(ErrorMessageMixin):
         self.mode = mode
         self._row_nbr = row_nbr
         self._col_nbr = col_nbr
-        self._interval = interval
         self._sampling_time = sampling_time
 
         self._fig = plt.figure(figsize=figsize)
@@ -120,8 +119,13 @@ class Plot(ErrorMessageMixin):
 
         if self.mode == PlotMode.DYNAMIC or self.mode == PlotMode.LIVE_DYNAMIC:
             self._redrawn_artists = []
+            assert (
+                interval is not None
+            ), "interval must be specified for dynamic and live dynamic modes"
+            self._interval = interval
         else:
             self._redrawn_artists = None
+            self._interval = None
 
         if self.mode == PlotMode.LIVE_DYNAMIC:
             self._live_dynamic_data_queue = mp.Queue()
@@ -279,7 +283,7 @@ class Plot(ErrorMessageMixin):
         for subplot_name, subplot in self._content.items():
             # set subplot title
             subplot["ax"].set_title(
-                subplot_name + " " + subplot["unit"]
+                "{} [{}]".format(subplot_name, subplot["unit"])
                 if subplot["show_unit"]
                 else subplot_name
             )
@@ -290,7 +294,7 @@ class Plot(ErrorMessageMixin):
                     or self.mode == PlotMode.STATIC
                 ):
                     if subplot["subplot_type"] == SubplotType.TEMPORAL:
-                        xdata = np.arange(curve["data"].size)
+                        xdata = np.arange(curve["data"].size, dtype=np.float)
                         if self._sampling_time is not None:
                             xdata *= self._sampling_time
 
@@ -562,10 +566,14 @@ class Plot(ErrorMessageMixin):
                 if subplot["subplot_type"] == SubplotType.TEMPORAL:
                     if curve["curve_type"] != CurveType.STATIC:
                         if curve["curve_type"] == CurveType.REGULAR:
-                            xdata = np.arange(curves_size)
+                            xdata = np.arange(curves_size, dtype=np.float)
                         else:
                             # we have curve["curve_type"] == CurveType.PREDICTION
-                            xdata = np.arange(curve["data"].size) + curves_size - 1
+                            xdata = (
+                                np.arange(curve["data"].size, dtype=np.float)
+                                + curves_size
+                                - 1
+                            )
 
                         if self._sampling_time is not None:
                             xdata *= self._sampling_time

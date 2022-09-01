@@ -7,7 +7,9 @@ if __name__ == "__main__":
     plot = Plot(
         row_nbr=4,
         col_nbr=2,
-        mode=PlotMode.STATIC,
+        mode=PlotMode.DYNAMIC,
+        sampling_time=0.1,
+        interval=50,
     )
     plot.add_subplot(
         subplot_name="map",
@@ -18,10 +20,10 @@ if __name__ == "__main__":
         subplot_type=SubplotType.SPATIAL,
         curves={
             "left_cones": {
-                "data": np.zeros((2, 10)),
-                "curve_type": CurveType.REGULAR,
-                "curve_style": CurvePlotStyle.PLOT,
-                "mpl_options": {"color": "red", "marker": "o"},
+                "data": np.random.rand(2, 4) * 10.0,
+                "curve_type": CurveType.STATIC,
+                "curve_style": CurvePlotStyle.SCATTER,
+                "mpl_options": {"color": "red", "marker": "^"},
             },
         },
     )
@@ -34,11 +36,11 @@ if __name__ == "__main__":
         subplot_type=SubplotType.TEMPORAL,
         curves={
             "yaw": {
-                "data": np.zeros((2, 10)),
+                "data": np.sin(np.linspace(0, 2 * np.pi, 100)),
                 "curve_type": CurveType.REGULAR,
                 "curve_style": CurvePlotStyle.PLOT,
                 "options": {"color": "blue", "marker": "o"},
             },
         },
     )
-    plt.show()
+    plot.plot(show=True)
