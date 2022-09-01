@@ -1,3 +1,4 @@
+# project requirements ===============================
 numpy
 matplotlib
 opencv-python
