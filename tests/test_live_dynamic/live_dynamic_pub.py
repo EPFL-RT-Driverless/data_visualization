@@ -20,7 +20,7 @@ def signal_handler(publisher):
 
 
 def main(with_sim: bool = False):
-    publisher = Publisher(verbose=True)
+    publisher = Publisher(verbose=False)
 
     def bruh(s, b):
         signal_handler(publisher)

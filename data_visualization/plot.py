@@ -200,7 +200,7 @@ class Plot:
             elif curve_values["curve_style"] == CurvePlotStyle.STEP:
                 plot_fun = ax.step
             elif curve_values["curve_style"] == CurvePlotStyle.SCATTER:
-                raise ValueError("fuck you mpl sucks")
+                plot_fun = ax.scatter
             elif curve_values["curve_style"] == CurvePlotStyle.SEMILOGX:
                 plot_fun = ax.semilogx
             elif curve_values["curve_style"] == CurvePlotStyle.SEMILOGY:
@@ -291,21 +291,39 @@ class Plot:
                         xdata = np.arange(curve["data"].size)
                         if self._sampling_time is not None:
                             xdata *= self._sampling_time
-                        (line,) = curve["plot_fun"](
-                            xdata, curve["data"], **curve["mpl_options"]
-                        )
+
+                        if curve["curve_style"] != CurvePlotStyle.SCATTER:
+                            (line,) = curve["plot_fun"](
+                                xdata, curve["data"], **curve["mpl_options"]
+                            )
+                        else:
+                            line = curve["plot_fun"](
+                                xdata, curve["data"], **curve["mpl_options"]
+                            )
                     elif subplot["subplot_type"] == SubplotType.SPATIAL:
-                        (line,) = curve["plot_fun"](
-                            curve["data"][0, :],
-                            curve["data"][1, :],
-                            **curve["mpl_options"]
-                        )
+                        if curve["curve_style"] != CurvePlotStyle.SCATTER:
+                            (line,) = curve["plot_fun"](
+                                curve["data"][0, :],
+                                curve["data"][1, :],
+                                **curve["mpl_options"]
+                            )
+                        else:
+                            line = curve["plot_fun"](
+                                curve["data"][0, :],
+                                curve["data"][1, :],
+                                **curve["mpl_options"]
+                            )
+
                     else:
                         raise ValueError(
                             "Unknown subplot type: ", subplot["subplot_type"]
                         )
                 else:
-                    (line,) = curve["plot_fun"]([], [], **curve["mpl_options"])
+                    if curve["curve_style"] != CurvePlotStyle.SCATTER:
+                        (line,) = curve["plot_fun"]([], [], **curve["mpl_options"])
+                    else:
+                        line = curve["plot_fun"]([], [], **curve["mpl_options"])
+
                     self._redrawn_artists.append(line)
 
                 curve["line"] = line
@@ -546,29 +564,55 @@ class Plot:
                         if self._sampling_time is not None:
                             xdata *= self._sampling_time
 
-                        curve["line"].set_data(
-                            xdata,
-                            curve["data"][:curves_size]
-                            if curve["curve_type"] == CurveType.REGULAR
-                            else curve["data"],
-                        )
+                        if curve["curve_style"] != CurvePlotStyle.SCATTER:
+                            curve["line"].set_data(
+                                xdata,
+                                curve["data"][:curves_size]
+                                if curve["curve_type"] == CurveType.REGULAR
+                                else curve["data"],
+                            )
+                        else:
+                            curve["line"].set_offsets(
+                                np.array(
+                                    [
+                                        xdata,
+                                        curve["data"][:curves_size]
+                                        if curve["curve_type"] == CurveType.REGULAR
+                                        else curve["data"],
+                                    ]
+                                ).T
+                            )
 
                 elif subplot["subplot_type"] == SubplotType.SPATIAL:
                     if curve["curve_type"] != CurveType.STATIC:
                         if curve["curve_type"] == CurveType.REGULAR:
-                            curve["line"].set_data(
-                                curve["data"][0, :curves_size],
-                                curve["data"][1, :curves_size],
-                            )
+                            if curve["curve_style"] != CurvePlotStyle.SCATTER:
+                                curve["line"].set_data(
+                                    curve["data"][0, :curves_size],
+                                    curve["data"][1, :curves_size],
+                                )
+                            else:
+                                curve["line"].set_offsets(
+                                    curve["data"][:, :curves_size].T,
+                                )
                         elif curve["curve_type"] == CurveType.PREDICTION:
-                            curve["line"].set_data(
-                                curve["data"][0, :, curves_size - 1]
-                                if self.mode == PlotMode.DYNAMIC
-                                else curve["data"][0, :],
-                                curve["data"][1, :, curves_size - 1]
-                                if self.mode == PlotMode.DYNAMIC
-                                else curve["data"][1, :],
-                            )
+                            if curve["curve_style"] != CurvePlotStyle.SCATTER:
+                                curve["line"].set_data(
+                                    curve["data"][0, :, curves_size - 1]
+                                    if self.mode == PlotMode.DYNAMIC
+                                    else curve["data"][0, :],
+                                    curve["data"][1, :, curves_size - 1]
+                                    if self.mode == PlotMode.DYNAMIC
+                                    else curve["data"][1, :],
+                                )
+                            else:
+                                curve["line"].set_offsets(
+                                    np.transpose(
+                                        curve["data"][:, :, curves_size - 1]
+                                        if self.mode == PlotMode.DYNAMIC
+                                        else curve["data"]
+                                    ),
+                                )
 
                 else:
                     raise ValueError("Unknown subplot type: ", subplot["subplot_type"])

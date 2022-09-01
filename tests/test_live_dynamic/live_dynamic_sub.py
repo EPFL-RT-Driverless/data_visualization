@@ -48,7 +48,7 @@ if __name__ == "__main__":
             },
             "traj": {
                 "data": None,
-                "curve_style": CurvePlotStyle.PLOT,
+                "curve_style": CurvePlotStyle.SCATTER,
                 "curve_type": CurveType.REGULAR,
                 "mpl_options": {},
             },

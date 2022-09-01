@@ -48,7 +48,7 @@ class Publisher:
 
         self.verbose = False
         for possible_kw in ["debug", "verbose"]:
-            if possible_kw in kwargs:
+            if possible_kw in kwargs and kwargs[possible_kw]:
                 self.verbose = True
                 break
 
