@@ -10,6 +10,7 @@ from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.figure import Figure
 from matplotlib.gridspec import GridSpec
+from matplotlib.image import NonUniformImage
 
 from .constants import *
 from .subscriber import launch_client
@@ -206,6 +207,9 @@ class Plot(ErrorMessageMixin):
             elif curve_values["curve_style"] == CurvePlotStyle.STEP:
                 plot_fun = ax.step
             elif curve_values["curve_style"] == CurvePlotStyle.SCATTER:
+                if curve_values["curve_type"] != CurveType.STATIC:
+                    raise NotImplementedError("dynamic scatter curves are not yet implemented")
+
                 plot_fun = ax.scatter
             elif curve_values["curve_style"] == CurvePlotStyle.SEMILOGX:
                 plot_fun = ax.semilogx
@@ -227,23 +231,23 @@ class Plot(ErrorMessageMixin):
                     if self.mode != PlotMode.LIVE_DYNAMIC:
                         assert curve_values["data"].ndim == 1
                         if self._length_curves == 0:
-                            self._length_curves = curve_values["data"].shape[-1]
+                            self._length_curves = curve_values["data"].shape[0]
                         else:
                             assert (
-                                self._length_curves == curve_values["data"].shape[-1]
+                                self._length_curves == curve_values["data"].shape[0]
                             ), "All curves must have the same length but this one has length {} while others have {}".format(
-                                curve_values["data"].shape[-1], self._length_curves
+                                curve_values["data"].shape[0], self._length_curves
                             )
                 elif curve_values["curve_type"] == CurveType.PREDICTION:
                     if self.mode != PlotMode.LIVE_DYNAMIC:
                         assert curve_values["data"].ndim == 2
                         if self._length_curves == 0:
-                            self._length_curves = curve_values["data"].shape[-1]
+                            self._length_curves = curve_values["data"].shape[0]
                         else:
                             assert (
-                                self._length_curves == curve_values["data"].shape[-1]
+                                self._length_curves == curve_values["data"].shape[0]
                             ), "All curves must have the same length but this one has length {} while others have {}".format(
-                                curve_values["data"].shape[-1], self._length_curves
+                                curve_values["data"].shape[0], self._length_curves
                             )
                 else:
                     raise ValueError("Unknown curve type: ", curve_values["curve_type"])
@@ -251,33 +255,33 @@ class Plot(ErrorMessageMixin):
                 if curve_values["curve_type"] == CurveType.STATIC:
                     assert (
                         curve_values["data"].ndim == 2
-                        and curve_values["data"].shape[0] == 2
+                        and curve_values["data"].shape[1] == 2
                     )
                 elif curve_values["curve_type"] == CurveType.REGULAR:
                     if self.mode != PlotMode.LIVE_DYNAMIC:
                         assert curve_values["data"].ndim == 2
                         if self._length_curves == 0:
-                            self._length_curves = curve_values["data"].shape[-1]
+                            self._length_curves = curve_values["data"].shape[0]
                         else:
                             assert (
-                                self._length_curves == curve_values["data"].shape[-1]
+                                self._length_curves == curve_values["data"].shape[0]
                             ), "All curves must have the same length but this one has length {} while others have {}".format(
-                                curve_values["data"].shape[-1], self._length_curves
+                                curve_values["data"].shape[0], self._length_curves
                             )
 
                 elif curve_values["curve_type"] == CurveType.PREDICTION:
                     if self.mode != PlotMode.LIVE_DYNAMIC:
                         assert (
                             curve_values["data"].ndim == 3
-                            and curve_values["data"].shape[0] == 2
+                            and curve_values["data"].shape[1] == 2
                         )
                         if self._length_curves == 0:
-                            self._length_curves = curve_values["data"].shape[-1]
+                            self._length_curves = curve_values["data"].shape[0]
                         else:
                             assert (
-                                self._length_curves == curve_values["data"].shape[-1]
+                                self._length_curves == curve_values["data"].shape[0]
                             ), "All curves must have the same length but this one has length {} while others have {}".format(
-                                curve_values["data"].shape[-1], self._length_curves
+                                curve_values["data"].shape[0], self._length_curves
                             )
                 else:
                     raise ValueError("Unknown curve type: ", curve_values["curve_type"])
@@ -325,14 +329,14 @@ class Plot(ErrorMessageMixin):
                     elif subplot["subplot_type"] == SubplotType.SPATIAL:
                         if curve["curve_style"] != CurvePlotStyle.SCATTER:
                             (line,) = curve["plot_fun"](
-                                curve["data"][0, :],
-                                curve["data"][1, :],
+                                curve["data"][:, 0],
+                                curve["data"][:, 1],
                                 **curve["mpl_options"],
                             )
                         else:
                             line = curve["plot_fun"](
-                                curve["data"][0, :],
-                                curve["data"][1, :],
+                                curve["data"][:, 0],
+                                curve["data"][:, 1],
                                 **curve["mpl_options"],
                             )
 
@@ -528,7 +532,7 @@ class Plot(ErrorMessageMixin):
                             self._length_curves += 1
                             return True
                         except AssertionError:
-                            # we don't update the plot because some of the data were not
+                            # we don't update the plot because some data were not
                             return False
 
                     if received_data == STOP_SIGNAL:
@@ -618,22 +622,22 @@ class Plot(ErrorMessageMixin):
                         if curve["curve_type"] == CurveType.REGULAR:
                             if curve["curve_style"] != CurvePlotStyle.SCATTER:
                                 curve["line"].set_data(
-                                    curve["data"][0, :curves_size],
-                                    curve["data"][1, :curves_size],
+                                    curve["data"][:curves_size, 0],
+                                    curve["data"][:curves_size, 1],
                                 )
                             else:
                                 curve["line"].set_offsets(
-                                    curve["data"][:, :curves_size].T,
+                                    curve["data"][:curves_size, :],
                                 )
                         elif curve["curve_type"] == CurveType.PREDICTION:
                             if curve["curve_style"] != CurvePlotStyle.SCATTER:
                                 curve["line"].set_data(
-                                    curve["data"][0, :, curves_size - 1]
+                                    curve["data"][:, 0, curves_size - 1]
                                     if self.mode == PlotMode.DYNAMIC
-                                    else curve["data"][0, :],
-                                    curve["data"][1, :, curves_size - 1]
+                                    else curve["data"][:, 0],
+                                    curve["data"][:, 1, curves_size - 1]
                                     if self.mode == PlotMode.DYNAMIC
-                                    else curve["data"][1, :],
+                                    else curve["data"][:, 1],
                                 )
                             else:
                                 curve["line"].set_offsets(

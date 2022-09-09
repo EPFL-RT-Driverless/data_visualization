@@ -28,6 +28,7 @@ def main(with_sim: bool = False):
     signal.signal(signal.SIGINT, bruh)
     if with_sim:
         sim = Simulation(ip="10.211.55.3")
+        pass
     for i in range(300):
         di = {
             "temporal": {

@@ -47,14 +47,14 @@ if __name__ == "__main__":
         subplot_type=SubplotType.SPATIAL,
         curves={
             "cones": {
-                "data": np.array([np.arange(4), np.arange(4)]),
+                "data": np.array([np.arange(4), np.arange(4)]).T,
                 "curve_type": CurveType.STATIC,
                 "curve_style": CurvePlotStyle.PLOT,
                 "mpl_options": {},
             },
             "traj": {
                 "data": None,
-                "curve_style": CurvePlotStyle.SCATTER,
+                "curve_style": CurvePlotStyle.PLOT,
                 "curve_type": CurveType.REGULAR,
                 "mpl_options": {},
             },
