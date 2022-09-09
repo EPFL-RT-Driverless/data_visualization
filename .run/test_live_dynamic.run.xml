@@ -1,7 +1,0 @@
-<component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="test_live_dynamic" type="CompoundRunConfigurationType">
-    <toRun name="live_dynamic_pub" type="PythonConfigurationType" />
-    <toRun name="live_dynamic_sub" type="PythonConfigurationType" />
-    <method v="2" />
-  </configuration>
-</component>
