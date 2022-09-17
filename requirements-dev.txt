@@ -1,4 +1,4 @@
 # project requirements ===============================
-
+-e git+https://github.com/EPFL-RT-Driverless/track_database.git@v1.1.0#egg=track_database
 # dev requirements ===============================
 
