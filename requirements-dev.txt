@@ -1,8 +1,4 @@
 # project requirements ===============================
-numpy
-matplotlib
-opencv-python
 
 # dev requirements ===============================
-black    # for formatting
-pre-commit
+
