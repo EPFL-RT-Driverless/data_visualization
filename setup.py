@@ -1,16 +1,22 @@
 from setuptools import setup, find_packages
 
+with open("README.md") as f:
+    readme = f.read()
+
+with open("requirements.txt") as f:
+    requirements = f.read().splitlines()
+    # delete lines starting with # and empty lines
+    requirements = [line for line in requirements if not line.startswith("#") and line]
+
 setup(
     name="data_visualization",
-    version="0.1.0",
+    version="1.0.0",
     packages=find_packages(include=["data_visualization"]),
     url="https://github.com/EPFL-RT-Driverless/data_visualization",
     license="MIT",
-    author="tudoroancea",
-    author_email="oancea.tudor@icloud.com",
     classifiers=[
-        "Development Status :: 1 - Planning",
-        # "Development Status :: 2 - Pre-Alpha",
+        # "Development Status :: 1 - Planning",
+        "Development Status :: 2 - Pre-Alpha",
         # "Development Status :: 3 - Alpha",
         # "Development Status :: 4 - Beta",
         # "Development Status :: 5 - Production/Stable",
@@ -19,4 +25,5 @@ setup(
         "Programming Language :: Python :: 3",
         "Private :: Do Not Upload",
     ],
+    install_requires=requirements,
 )

@@ -1,2 +1,5 @@
+# Copyright (c) Tudor Oancea, EPFL Racing Team, 2022
+# This file only contains pip dependencies that are required to run the main package.
 numpy
-matplotlib
+matplotlib~=3.5.0
+opencv-python

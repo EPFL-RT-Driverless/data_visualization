@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2022, Tudor Oancea, EPFL Racing Team Driverless
+Copyright (c) 2022, Tudor Oancea, Mattéo Berthet, EPFL Racing Team Driverless
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
