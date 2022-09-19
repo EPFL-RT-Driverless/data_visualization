@@ -6,11 +6,15 @@ with open("README.md") as f:
 with open("requirements.txt") as f:
     requirements = f.read().splitlines()
     # delete lines starting with # and empty lines
-    requirements = [line for line in requirements if not line.startswith("#") and line]
+    requirements = [
+        r
+        for r in requirements
+        if not (r.startswith("#") or r.startswith("-e git+") or r.startswith("git+"))
+    ]
 
 setup(
     name="data_visualization",
-    version="1.0.1",
+    version="1.0.2",
     packages=find_packages(include=["data_visualization"]),
     url="https://github.com/EPFL-RT-Driverless/data_visualization",
     license="MIT",
