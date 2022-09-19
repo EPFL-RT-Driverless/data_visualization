@@ -10,7 +10,7 @@ with open("requirements.txt") as f:
 
 setup(
     name="data_visualization",
-    version="1.0.0",
+    version="1.0.1",
     packages=find_packages(include=["data_visualization"]),
     url="https://github.com/EPFL-RT-Driverless/data_visualization",
     license="MIT",
