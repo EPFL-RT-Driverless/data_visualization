@@ -1,12 +1,12 @@
+# Copyright (c) Tudor Oancea, EPFL Racing Team, 2022
+
 name: Check black style
 
 on:
   push:
-    branches:
-      - "main"
+    branches: ["main"]
   pull_request:
-    branches:
-      - "main"
+    branches: ["main"]
 
 jobs:
   lint:
@@ -15,4 +15,4 @@ jobs:
       - uses: actions/checkout@v2
       - uses: psf/black@stable
         with:
-          options: "--check --diff --color --exclude=\"\""
+          options: "--check --diff --color"

@@ -10,7 +10,6 @@ from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.figure import Figure
 from matplotlib.gridspec import GridSpec
-from matplotlib.image import NonUniformImage
 
 from .constants import *
 from .subscriber import launch_client
@@ -208,7 +207,9 @@ class Plot(ErrorMessageMixin):
                 plot_fun = ax.step
             elif curve_values["curve_style"] == CurvePlotStyle.SCATTER:
                 if curve_values["curve_type"] != CurveType.STATIC:
-                    raise NotImplementedError("dynamic scatter curves are not yet implemented")
+                    raise NotImplementedError(
+                        "dynamic scatter curves are not yet implemented"
+                    )
 
                 plot_fun = ax.scatter
             elif curve_values["curve_style"] == CurvePlotStyle.SEMILOGX:
