@@ -472,7 +472,7 @@ class Plot(ErrorMessageMixin):
                                             if just_assign_dont_worry:
                                                 new_data[subplot_name][
                                                     curve_name
-                                                ] = np.expand_dims(curve, 1)
+                                                ] = np.expand_dims(curve, 0)
                                             else:
                                                 new_data[subplot_name][
                                                     curve_name
@@ -480,7 +480,7 @@ class Plot(ErrorMessageMixin):
                                                     self._content[subplot_name][
                                                         "curves"
                                                     ][curve_name]["data"],
-                                                    np.expand_dims(curve, 1),
+                                                    np.expand_dims(curve, 0),
                                                     axis=1,
                                                 )
                                         elif (
@@ -604,9 +604,10 @@ class Plot(ErrorMessageMixin):
 
         :param curves_size: the common size of all the regular curves
         """
-        start_plotting = perf_counter()
+        if (self.mode == PlotMode.LIVE_DYNAMIC and self._length_curves == 0):
+            return
+        #start_plotting = perf_counter() #to show the plotting time (see end of function)
         # i = 1
-        curves_size_input = curves_size
         for subplot_name, subplot in self._content.items():
             for curve_name, curve in subplot["curves"].items():
                 if subplot["subplot_type"] == SubplotType.TEMPORAL:
@@ -677,16 +678,12 @@ class Plot(ErrorMessageMixin):
 
                 else:
                     raise ValueError("Unknown subplot type: ", subplot["subplot_type"])
-            # start_update = perf_counter()
+
             subplot["ax"].relim()
             subplot["ax"].autoscale_view()
-            # print("   {} update time {}".format(i, perf_counter() - start_update))
-            # subplot["ax"].draw(subplot["ax"].figure.canvas.get_renderer())
-            # subplot["ax"].figure.canvas.draw()
-            # print("   {} draw time {}".format(i, perf_counter() - start_update))
-            # i += 1
+
         self._fig.canvas.draw()
-        print("total plotting time {}".format(perf_counter() - start_plotting))
+        #print("total plotting time {}".format(perf_counter() - start_plotting)) #uncomment to show plotting time
 
 
 def _convert_to_contiguous_slice(idx: Union[slice, int, range]) -> slice:
