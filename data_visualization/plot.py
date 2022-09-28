@@ -124,7 +124,7 @@ class Plot(ErrorMessageMixin):
         self._anim = None
         self._length_curves = 0
 
-        mplstyle.use('fast')
+        mplstyle.use("fast")
 
         if self.mode == PlotMode.DYNAMIC or self.mode == PlotMode.LIVE_DYNAMIC:
             self._redrawn_artists = []
@@ -402,7 +402,7 @@ class Plot(ErrorMessageMixin):
 
     def _dynamic_frame(self):
         n = 0
-        while (self._dynamic_current_frame < self._length_curves):
+        while self._dynamic_current_frame < self._length_curves:
             yield n
             n += 1
 
@@ -416,11 +416,13 @@ class Plot(ErrorMessageMixin):
         if self.mode != PlotMode.DYNAMIC:
             raise ValueError("_update_dynamic should only be called in dynamic mode")
         else:
-            #print(frame)
+            # print(frame)
             start_time = perf_counter()
             self._update_plot_common(self._dynamic_current_frame)
-            end_time = perf_counter()-start_time
-            self._dynamic_current_frame += int((end_time/self._sampling_time)//1 + 1)
+            end_time = perf_counter() - start_time
+            self._dynamic_current_frame += int(
+                (end_time / self._sampling_time) // 1 + 1
+            )
             return self._redrawn_artists
 
     def _update_plot_live_dynamic(self, frame: int):
@@ -602,14 +604,14 @@ class Plot(ErrorMessageMixin):
 
         :param curves_size: the common size of all the regular curves
         """
-        #start_plotting = perf_counter()
-        #i = 1
+        start_plotting = perf_counter()
+        # i = 1
         curves_size_input = curves_size
         for subplot_name, subplot in self._content.items():
             for curve_name, curve in subplot["curves"].items():
                 if subplot["subplot_type"] == SubplotType.TEMPORAL:
                     if curve["curve_type"] != CurveType.STATIC:
-                        curves_size = min(curve["data"].shape[0], curves_size_input)
+                        # curves_size = min(curve["data"].shape[0], curves_size_input)
                         if curve["curve_type"] == CurveType.REGULAR:
                             xdata = np.arange(curves_size, dtype=np.float)
                         else:
@@ -642,7 +644,7 @@ class Plot(ErrorMessageMixin):
                             )
 
                 elif subplot["subplot_type"] == SubplotType.SPATIAL:
-                    curves_size = min(curve["data"].shape[0], curves_size_input)
+                    # curves_size = min(curve["data"].shape[0], curves_size_input)
                     if curve["curve_type"] != CurveType.STATIC:
                         if curve["curve_type"] == CurveType.REGULAR:
                             if curve["curve_style"] != CurvePlotStyle.SCATTER:
@@ -675,16 +677,17 @@ class Plot(ErrorMessageMixin):
 
                 else:
                     raise ValueError("Unknown subplot type: ", subplot["subplot_type"])
-            #start_update = perf_counter()
+            # start_update = perf_counter()
             subplot["ax"].relim()
             subplot["ax"].autoscale_view()
-            #print("   {} update time {}".format(i, perf_counter() - start_update))
-            #subplot["ax"].draw(subplot["ax"].figure.canvas.get_renderer())
-            #subplot["ax"].figure.canvas.draw()
-            #print("   {} draw time {}".format(i, perf_counter() - start_update))
-            #i += 1
+            # print("   {} update time {}".format(i, perf_counter() - start_update))
+            # subplot["ax"].draw(subplot["ax"].figure.canvas.get_renderer())
+            # subplot["ax"].figure.canvas.draw()
+            # print("   {} draw time {}".format(i, perf_counter() - start_update))
+            # i += 1
         self._fig.canvas.draw()
-        #print("total plotting time {}".format(perf_counter()-start_plotting))
+        print("total plotting time {}".format(perf_counter() - start_plotting))
+
 
 def _convert_to_contiguous_slice(idx: Union[slice, int, range]) -> slice:
     """Converts an index to a slice if it is not already a slice"""
