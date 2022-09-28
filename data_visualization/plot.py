@@ -604,9 +604,9 @@ class Plot(ErrorMessageMixin):
 
         :param curves_size: the common size of all the regular curves
         """
-        if (self.mode == PlotMode.LIVE_DYNAMIC and self._length_curves == 0):
+        if self.mode == PlotMode.LIVE_DYNAMIC and self._length_curves == 0:
             return
-        #start_plotting = perf_counter() #to show the plotting time (see end of function)
+        # start_plotting = perf_counter() #to show the plotting time (see end of function)
         # i = 1
         for subplot_name, subplot in self._content.items():
             for curve_name, curve in subplot["curves"].items():
@@ -683,7 +683,7 @@ class Plot(ErrorMessageMixin):
             subplot["ax"].autoscale_view()
 
         self._fig.canvas.draw()
-        #print("total plotting time {}".format(perf_counter() - start_plotting)) #uncomment to show plotting time
+        # print("total plotting time {}".format(perf_counter() - start_plotting)) #uncomment to show plotting time
 
 
 def _convert_to_contiguous_slice(idx: Union[slice, int, range]) -> slice:
