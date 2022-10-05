@@ -11,8 +11,12 @@ from matplotlib.animation import FuncAnimation
 from matplotlib.figure import Figure
 from matplotlib.gridspec import GridSpec
 
+from matplotlib import style as mplstyle
+
 from .constants import *
 from .subscriber import launch_client
+
+from time import perf_counter
 
 __all__ = ["Plot", "PlotMode", "SubplotType", "CurveType", "CurvePlotStyle"]
 
@@ -76,6 +80,9 @@ class Plot(ErrorMessageMixin):
     _anim: Optional[FuncAnimation]
     _length_curves: int
 
+    # stuff for Dynamic mode
+    _dynamic_current_frame: Optional[int]
+
     # stuff for Dynamic and Live Dynamic modes
     _redrawn_artists: Optional[list]
 
@@ -116,6 +123,8 @@ class Plot(ErrorMessageMixin):
         self._content = {}
         self._anim = None
         self._length_curves = 0
+
+        mplstyle.use("fast")
 
         if self.mode == PlotMode.DYNAMIC or self.mode == PlotMode.LIVE_DYNAMIC:
             self._redrawn_artists = []
@@ -359,10 +368,11 @@ class Plot(ErrorMessageMixin):
 
         # create animation if necessary
         if self.mode == PlotMode.DYNAMIC:
+            self._dynamic_current_frame = 1
             self._anim = MyFuncAnimation(
                 self._fig,
                 self._update_plot_dynamic,
-                frames=self._length_curves,
+                frames=self._dynamic_frame,
                 interval=self._interval,
                 repeat=False,
                 blit=True,
@@ -390,6 +400,12 @@ class Plot(ErrorMessageMixin):
             # plt.show(block=False)
             plt.show(block=True)
 
+    def _dynamic_frame(self):
+        n = 0
+        while self._dynamic_current_frame < self._length_curves:
+            yield n
+            n += 1
+
     def _live_dynamic_generator(self):
         n = 0
         while not self._no_more_values:
@@ -400,7 +416,13 @@ class Plot(ErrorMessageMixin):
         if self.mode != PlotMode.DYNAMIC:
             raise ValueError("_update_dynamic should only be called in dynamic mode")
         else:
-            self._update_plot_common(frame)
+            # print(frame)
+            start_time = perf_counter()
+            self._update_plot_common(self._dynamic_current_frame)
+            end_time = perf_counter() - start_time
+            self._dynamic_current_frame += int(
+                (end_time / self._sampling_time) // 1 + 1
+            )
             return self._redrawn_artists
 
     def _update_plot_live_dynamic(self, frame: int):
@@ -450,7 +472,7 @@ class Plot(ErrorMessageMixin):
                                             if just_assign_dont_worry:
                                                 new_data[subplot_name][
                                                     curve_name
-                                                ] = np.expand_dims(curve, 1)
+                                                ] = np.expand_dims(curve, 0)
                                             else:
                                                 new_data[subplot_name][
                                                     curve_name
@@ -458,7 +480,7 @@ class Plot(ErrorMessageMixin):
                                                     self._content[subplot_name][
                                                         "curves"
                                                     ][curve_name]["data"],
-                                                    np.expand_dims(curve, 1),
+                                                    np.expand_dims(curve, 0),
                                                     axis=1,
                                                 )
                                         elif (
@@ -582,10 +604,15 @@ class Plot(ErrorMessageMixin):
 
         :param curves_size: the common size of all the regular curves
         """
+        if self.mode == PlotMode.LIVE_DYNAMIC and self._length_curves == 0:
+            return
+        # start_plotting = perf_counter() #to show the plotting time (see end of function)
+        # i = 1
         for subplot_name, subplot in self._content.items():
             for curve_name, curve in subplot["curves"].items():
                 if subplot["subplot_type"] == SubplotType.TEMPORAL:
                     if curve["curve_type"] != CurveType.STATIC:
+                        # curves_size = min(curve["data"].shape[0], curves_size_input)
                         if curve["curve_type"] == CurveType.REGULAR:
                             xdata = np.arange(curves_size, dtype=np.float)
                         else:
@@ -595,7 +622,6 @@ class Plot(ErrorMessageMixin):
                                 + curves_size
                                 - 1
                             )
-
                         if self._sampling_time is not None:
                             xdata *= self._sampling_time
 
@@ -619,6 +645,7 @@ class Plot(ErrorMessageMixin):
                             )
 
                 elif subplot["subplot_type"] == SubplotType.SPATIAL:
+                    # curves_size = min(curve["data"].shape[0], curves_size_input)
                     if curve["curve_type"] != CurveType.STATIC:
                         if curve["curve_type"] == CurveType.REGULAR:
                             if curve["curve_style"] != CurvePlotStyle.SCATTER:
@@ -654,7 +681,9 @@ class Plot(ErrorMessageMixin):
 
             subplot["ax"].relim()
             subplot["ax"].autoscale_view()
-            subplot["ax"].figure.canvas.draw()
+
+        self._fig.canvas.draw()
+        # print("total plotting time {}".format(perf_counter() - start_plotting)) #uncomment to show plotting time
 
 
 def _convert_to_contiguous_slice(idx: Union[slice, int, range]) -> slice:
