@@ -1,6 +1,11 @@
+# v1.0.4
+
+fixed bug with _redrawn_artists (it was called even in Static mode)
+
 # v1.0.3
 
-dynamic visualization optimization 
+dynamic visualization optimization
+
 # v1.0.2
 
 Fixed import of git deps in `setup.py`
