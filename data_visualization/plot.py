@@ -360,7 +360,8 @@ class Plot(ErrorMessageMixin):
                     else:
                         line = curve["plot_fun"]([], [], **curve["mpl_options"])
 
-                    self._redrawn_artists.append(line)
+                    if self.mode != PlotMode.STATIC:
+                        self._redrawn_artists.append(line)
 
                 curve["line"] = line
 
