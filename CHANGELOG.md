@@ -1,3 +1,11 @@
+# v1.0.5
+
+:bug: fixed bugs with Live Dynamic modes and save
+
+Spatial curves were not displayed correctly in live dynamic mode
+because of a wrong call to np.append().
+Now using FFMpegWriter to save animations to mp4 format
+
 # v1.0.4
 
 fixed bug with _redrawn_artists (it was called even in Static mode)
