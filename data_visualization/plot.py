@@ -92,10 +92,9 @@ class Plot(ErrorMessageMixin):
 
     # booleans to show the car or not and to know what to show
     _show_car: bool
-    _car_traj: bool # requires a subplot called "map"
-    _car_phi: bool # requires a subplot called "phi"
-    _wheel_delta: bool # requires a subplot called "delta"
-
+    _car_traj: bool  # requires a subplot called "map"
+    _car_phi: bool  # requires a subplot called "phi"
+    _wheel_delta: bool  # requires a subplot called "delta"
 
     def __init__(
         self,
@@ -107,7 +106,7 @@ class Plot(ErrorMessageMixin):
         sampling_time: Optional[float] = None,
         host: str = DEFAULT_HOST,
         port: int = DEFAULT_PORT,
-        show_car = False,
+        show_car=False,
         **kwargs,
     ):
         """
@@ -321,9 +320,9 @@ class Plot(ErrorMessageMixin):
             "curves": curves,
         }
 
-        self._car_traj = (subplot_name == "map" or self._car_traj)
-        self._car_phi = (subplot_name == "phi" or self._car_phi)
-        self._wheel_delta = (subplot_name == "delta" or self._wheel_delta)
+        self._car_traj = subplot_name == "map" or self._car_traj
+        self._car_phi = subplot_name == "phi" or self._car_phi
+        self._wheel_delta = subplot_name == "delta" or self._wheel_delta
 
     def plot(self, show: bool = True, save_path: str = None):
         for subplot_name, subplot in self._content.items():
@@ -778,16 +777,28 @@ class Plot(ErrorMessageMixin):
             subplot["ax"].relim()
             subplot["ax"].autoscale_view()
 
-        if (self._show_car and self._car_traj):
-            translate = self._content["map"]["curves"]["trajectory"]["data"][curves_size]
+        if self._show_car and self._car_traj:
+            translate = self._content["map"]["curves"]["trajectory"]["data"][
+                curves_size
+            ]
 
             phi = np.pi
-            if (self._car_phi and len(self._content["phi"]["curves"]["phi"]["data"]) > curves_size) :
-                phi = np.deg2rad(self._content["phi"]["curves"]["phi"]["data"][curves_size]-90)
+            if (
+                self._car_phi
+                and len(self._content["phi"]["curves"]["phi"]["data"]) > curves_size
+            ):
+                phi = np.deg2rad(
+                    self._content["phi"]["curves"]["phi"]["data"][curves_size] - 90
+                )
 
             delta = 0
-            if (self._wheel_delta and len(self._content["delta"]["curves"]["delta"]["data"]) > curves_size):
-                delta = np.deg2rad(self._content["delta"]["curves"]["delta"]["data"][curves_size])
+            if (
+                self._wheel_delta
+                and len(self._content["delta"]["curves"]["delta"]["data"]) > curves_size
+            ):
+                delta = np.deg2rad(
+                    self._content["delta"]["curves"]["delta"]["data"][curves_size]
+                )
 
             # car measurements
             h_car = 2.986
@@ -796,58 +807,115 @@ class Plot(ErrorMessageMixin):
             h_wheel = 0.3
             w_wheel = 0.15
             diff_car_wheel_h = 1.416
-            center_to_wheels = 1.403/2
+            center_to_wheels = 1.403 / 2
             h_body = 1.570 - h_wheel - 0.1
             w_body = 1.403 + w_wheel
             h_spoiler = 0.7
             w_spoiler = 1.551
 
-            rotation_phi = np.array([[np.cos(phi), -np.sin(phi)],
-                                     [np.sin(phi), np.cos(phi)]])
+            rotation_phi = np.array(
+                [[np.cos(phi), -np.sin(phi)], [np.sin(phi), np.cos(phi)]]
+            )
             # car body
-            pos = np.array([-w_car/2, -h_car/2])
-            pos = rotation_phi@pos + translate
-            car_body = ptc.Rectangle(pos, w_car, h_car, angle=np.rad2deg(phi), color='red')
+            pos = np.array([-w_car / 2, -h_car / 2])
+            pos = rotation_phi @ pos + translate
+            car_body = ptc.Rectangle(
+                pos, w_car, h_car, angle=np.rad2deg(phi), color="red"
+            )
 
             # front spoiler
-            pos = np.array([-w_spoiler/2, h_car/2 - h_spoiler])
-            pos = rotation_phi@pos + translate
-            front_spoiler = ptc.Rectangle(pos, w_spoiler, h_spoiler, angle=np.rad2deg(phi), color='C1')
+            pos = np.array([-w_spoiler / 2, h_car / 2 - h_spoiler])
+            pos = rotation_phi @ pos + translate
+            front_spoiler = ptc.Rectangle(
+                pos, w_spoiler, h_spoiler, angle=np.rad2deg(phi), color="C1"
+            )
 
             # body between front and rear wheels
-            pos = np.array([-center_to_wheels - w_wheel/2, h_car/2 - h_spoiler - h_body - h_wheel - 0.2])
-            pos = rotation_phi@pos + translate
-            rear_spoiler = ptc.Rectangle(pos, w_body, h_body, angle=np.rad2deg(phi), color='red')
+            pos = np.array(
+                [
+                    -center_to_wheels - w_wheel / 2,
+                    h_car / 2 - h_spoiler - h_body - h_wheel - 0.2,
+                ]
+            )
+            pos = rotation_phi @ pos + translate
+            rear_spoiler = ptc.Rectangle(
+                pos, w_body, h_body, angle=np.rad2deg(phi), color="red"
+            )
 
             # phi + delta rotation matrix
-            rotation_theta_phi = np.array([[np.cos(delta+phi), -np.sin(delta+phi)],
-                                       [np.sin(delta+phi), np.cos(delta+phi)]])
+            rotation_theta_phi = np.array(
+                [
+                    [np.cos(delta + phi), -np.sin(delta + phi)],
+                    [np.sin(delta + phi), np.cos(delta + phi)],
+                ]
+            )
             # wheel top left
-            pos_wtl = np.array([-w_wheel/2, -h_wheel/2])
-            translate_wtl = rotation_phi@np.array([-center_to_wheels + 0.05, h_car/2 - h_spoiler - h_wheel/2 - 0.1]) + translate
-            pos_wtl = rotation_theta_phi@pos_wtl + translate_wtl
-            #pos_wtl += translate_wtl
-            wheel_tl = ptc.Rectangle(pos_wtl, w_wheel, h_wheel, angle=np.rad2deg(delta + phi), color='black')
+            pos_wtl = np.array([-w_wheel / 2, -h_wheel / 2])
+            translate_wtl = (
+                rotation_phi
+                @ np.array(
+                    [
+                        -center_to_wheels + 0.05,
+                        h_car / 2 - h_spoiler - h_wheel / 2 - 0.1,
+                    ]
+                )
+                + translate
+            )
+            pos_wtl = rotation_theta_phi @ pos_wtl + translate_wtl
+            # pos_wtl += translate_wtl
+            wheel_tl = ptc.Rectangle(
+                pos_wtl, w_wheel, h_wheel, angle=np.rad2deg(delta + phi), color="black"
+            )
 
-            #wheel top right
-            pos_wtr = np.array([-w_wheel/2, -h_wheel/2])
-            translate_wtr = rotation_phi@np.array([center_to_wheels - 0.05, h_car/2 - h_spoiler - h_wheel/2 - 0.1]) + translate
-            pos_wtr = rotation_theta_phi@pos_wtr + translate_wtr
-            wheel_tr = ptc.Rectangle(pos_wtr, w_wheel, h_wheel, angle=np.rad2deg(delta + phi), color='black')
+            # wheel top right
+            pos_wtr = np.array([-w_wheel / 2, -h_wheel / 2])
+            translate_wtr = (
+                rotation_phi
+                @ np.array(
+                    [center_to_wheels - 0.05, h_car / 2 - h_spoiler - h_wheel / 2 - 0.1]
+                )
+                + translate
+            )
+            pos_wtr = rotation_theta_phi @ pos_wtr + translate_wtr
+            wheel_tr = ptc.Rectangle(
+                pos_wtr, w_wheel, h_wheel, angle=np.rad2deg(delta + phi), color="black"
+            )
 
-            #wheel bottom left
-            pos_wbl = np.array([-w_wheel/2, -h_wheel/2])
-            translate_wbl = -rotation_phi@np.array([-center_to_wheels + 0.05, -h_car/2 + h_spoiler + 3*h_wheel/2 + 0.3 + h_body]) + translate
-            pos_wbl = rotation_phi@pos_wbl + translate_wbl
-            wheel_bl = ptc.Rectangle(pos_wbl, w_wheel, h_wheel, angle=np.rad2deg(phi), color='black')
+            # wheel bottom left
+            pos_wbl = np.array([-w_wheel / 2, -h_wheel / 2])
+            translate_wbl = (
+                -rotation_phi
+                @ np.array(
+                    [
+                        -center_to_wheels + 0.05,
+                        -h_car / 2 + h_spoiler + 3 * h_wheel / 2 + 0.3 + h_body,
+                    ]
+                )
+                + translate
+            )
+            pos_wbl = rotation_phi @ pos_wbl + translate_wbl
+            wheel_bl = ptc.Rectangle(
+                pos_wbl, w_wheel, h_wheel, angle=np.rad2deg(phi), color="black"
+            )
 
-            #wheel bottom right
-            pos_wbr = np.array([-w_wheel/2, -h_wheel/2])
-            translate_wbr = -rotation_phi@np.array([center_to_wheels - 0.05, -h_car/2 + h_spoiler + 3*h_wheel/2 + 0.3 + h_body]) + translate
-            pos_wbr = rotation_phi@pos_wbr + translate_wbr
-            wheel_br = ptc.Rectangle(pos_wbr, w_wheel, h_wheel, angle=np.rad2deg(phi), color='black')
+            # wheel bottom right
+            pos_wbr = np.array([-w_wheel / 2, -h_wheel / 2])
+            translate_wbr = (
+                -rotation_phi
+                @ np.array(
+                    [
+                        center_to_wheels - 0.05,
+                        -h_car / 2 + h_spoiler + 3 * h_wheel / 2 + 0.3 + h_body,
+                    ]
+                )
+                + translate
+            )
+            pos_wbr = rotation_phi @ pos_wbr + translate_wbr
+            wheel_br = ptc.Rectangle(
+                pos_wbr, w_wheel, h_wheel, angle=np.rad2deg(phi), color="black"
+            )
 
-            if (len(self._content["map"]["ax"].patches) > 0) :
+            if len(self._content["map"]["ax"].patches) > 0:
                 self._content["map"]["ax"].patches.clear()
             self._content["map"]["ax"].add_patch(car_body)
             self._content["map"]["ax"].add_patch(front_spoiler)
@@ -856,7 +924,6 @@ class Plot(ErrorMessageMixin):
             self._content["map"]["ax"].add_patch(wheel_tr)
             self._content["map"]["ax"].add_patch(wheel_bl)
             self._content["map"]["ax"].add_patch(wheel_br)
-
 
         self._fig.canvas.draw()
         # print("total plotting time {}".format(perf_counter() - start_plotting)) #uncomment to show plotting time
