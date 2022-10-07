@@ -18,6 +18,9 @@ from matplotlib import patches as ptc
 from .constants import *
 from .subscriber import launch_client
 
+from .constants import *
+from .subscriber import launch_client
+
 __all__ = ["Plot", "PlotMode", "SubplotType", "CurveType", "CurvePlotStyle"]
 
 
