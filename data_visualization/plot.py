@@ -2,12 +2,13 @@
 import multiprocessing as mp
 import warnings
 from enum import Enum
+from time import perf_counter
 from typing import Optional, Union
 
 import cv2
 import numpy as np
-from matplotlib import pyplot as plt
-from matplotlib.animation import FuncAnimation
+from matplotlib import pyplot as plt, style as mplstyle
+from matplotlib.animation import FuncAnimation, FFMpegWriter
 from matplotlib.figure import Figure
 from matplotlib.gridspec import GridSpec
 
@@ -16,8 +17,6 @@ from matplotlib import patches as ptc
 
 from .constants import *
 from .subscriber import launch_client
-
-from time import perf_counter
 
 __all__ = ["Plot", "PlotMode", "SubplotType", "CurveType", "CurvePlotStyle"]
 
@@ -326,7 +325,7 @@ class Plot(ErrorMessageMixin):
         self._car_phi = (subplot_name == "phi" or self._car_phi)
         self._wheel_delta = (subplot_name == "delta" or self._wheel_delta)
 
-    def plot(self, show: bool = True, save: bool = False, save_path: str = None):
+    def plot(self, show: bool = True, save_path: str = None):
         for subplot_name, subplot in self._content.items():
             # set subplot title
             subplot["ax"].set_title(
@@ -391,6 +390,7 @@ class Plot(ErrorMessageMixin):
                 self._fig,
                 self._update_plot_dynamic,
                 frames=self._dynamic_frame,
+                save_count=self._length_curves,
                 interval=self._interval,
                 repeat=False,
                 blit=True,
@@ -405,11 +405,12 @@ class Plot(ErrorMessageMixin):
                 blit=True,
             )
 
-        if save:
+        if save_path is not None:
             if self.mode == PlotMode.DYNAMIC:
-                assert save_path is not None, "save_path should be specified"
                 self._anim.save(
-                    save_path, fps=30, extra_args=["-vcodec", "libx264"], dpi=300
+                    filename=save_path,
+                    writer=FFMpegWriter(fps=20),
+                    dpi=300,
                 )
             else:
                 warnings.warn("cannot save static and live dynamic plots")
@@ -485,8 +486,25 @@ class Plot(ErrorMessageMixin):
                                             ]["curve_type"]
                                             == CurveType.REGULAR
                                         ):
-                                            assert type(curve) is np.ndarray
-                                            assert curve.shape == (2,)
+                                            self._print_status_message(
+                                                "received spatial data"
+                                            )
+                                            assert type(curve) is np.ndarray, (
+                                                "The data for the curve "
+                                                + curve_name
+                                                + " in the subplot "
+                                                + subplot_name
+                                                + " should be a numpy array but is "
+                                                + str(type(curve))
+                                            )
+                                            assert curve.shape == (2,), (
+                                                "The data for the curve "
+                                                + curve_name
+                                                + " in the subplot "
+                                                + subplot_name
+                                                + " should be a numpy array of shape (2,) but is "
+                                                + str(curve.shape)
+                                            )
                                             if just_assign_dont_worry:
                                                 new_data[subplot_name][
                                                     curve_name
@@ -499,7 +517,7 @@ class Plot(ErrorMessageMixin):
                                                         "curves"
                                                     ][curve_name]["data"],
                                                     np.expand_dims(curve, 0),
-                                                    axis=1,
+                                                    axis=0,
                                                 )
                                         elif (
                                             self._content[subplot_name]["curves"][
@@ -507,13 +525,33 @@ class Plot(ErrorMessageMixin):
                                             ]["curve_type"]
                                             == CurveType.PREDICTION
                                         ):
-                                            assert type(curve) is np.ndarray
+                                            assert type(curve) is np.ndarray, (
+                                                "The data for the curve "
+                                                + curve_name
+                                                + " in the subplot "
+                                                + subplot_name
+                                                + " should be a numpy array but is "
+                                                + str(type(curve))
+                                            )
                                             if not just_assign_dont_worry:
                                                 assert (
                                                     curve.shape
                                                     == self._content[subplot_name][
                                                         "curves"
                                                     ][curve_name]["data"].shape
+                                                ), (
+                                                    "The data for the curve "
+                                                    + curve_name
+                                                    + " in the subplot "
+                                                    + subplot_name
+                                                    + " should be a numpy array of shape "
+                                                    + str(
+                                                        self._content[subplot_name][
+                                                            "curves"
+                                                        ][curve_name]["data"].shape
+                                                    )
+                                                    + " but is "
+                                                    + str(curve.shape)
                                                 )
                                             new_data[subplot_name][curve_name] = curve
                                         else:
@@ -530,7 +568,19 @@ class Plot(ErrorMessageMixin):
                                             ]["curve_type"]
                                             == CurveType.REGULAR
                                         ):
-                                            assert type(curve) is float
+                                            assert (
+                                                isinstance(curve, float)
+                                                or isinstance(curve, np.float64)
+                                                or isinstance(curve, np.float32)
+                                            ), (
+                                                "The data for the curve "
+                                                + curve_name
+                                                + " in the subplot "
+                                                + subplot_name
+                                                + " should be a float but is "
+                                                + str(type(curve))
+                                            )
+
                                             if just_assign_dont_worry:
                                                 self._content[subplot_name]["curves"][
                                                     curve_name
@@ -551,15 +601,33 @@ class Plot(ErrorMessageMixin):
                                             ]["curve_type"]
                                             == CurveType.PREDICTION
                                         ):
-                                            assert type(curve) is np.ndarray
-                                            assert len(curve.shape) == 1
+                                            assert type(curve) is np.ndarray, (
+                                                "The data for the curve "
+                                                + curve_name
+                                                + " in the subplot "
+                                                + subplot_name
+                                                + " should be a numpy array but is "
+                                                + str(type(curve))
+                                            )
+                                            assert len(curve.shape) == 1, (
+                                                "The data for the curve "
+                                                + curve_name
+                                                + " in the subplot "
+                                                + subplot_name
+                                                + " should be a numpy array of shape (n,) but is "
+                                                + str(curve.shape)
+                                            )
+
                                             new_data[subplot_name][curve_name] = curve
                                         else:
                                             self._print_status_message(
                                                 "You sent data for a curve that is not regular or prediction, ignoring"
                                             )
                                     else:
-                                        raise ValueError("bruh")
+                                        raise ValueError(
+                                            "The subplot type is not valid for subplot "
+                                            + subplot_name
+                                        )
 
                             # if everything is in order update the content
                             for subplot_name, subplot in new_data.items():
@@ -572,8 +640,13 @@ class Plot(ErrorMessageMixin):
                             # update the length of the curves
                             self._length_curves += 1
                             return True
-                        except AssertionError:
-                            # we don't update the plot because some data were not
+                        except AssertionError as e:
+                            # we don't update the plot because some data were not in
+                            # the right format (we drop the frame)
+                            self._print_status_message(
+                                "Received data are not in the right format, ignoring. Error message: "
+                                + str(e)
+                            )
                             return False
 
                     if received_data == STOP_SIGNAL:
@@ -607,6 +680,7 @@ class Plot(ErrorMessageMixin):
                         pass
 
             if have_to_update:
+
                 self._update_plot_common(self._length_curves)
 
             if last_received_image is not None:
@@ -667,11 +741,15 @@ class Plot(ErrorMessageMixin):
                     if curve["curve_type"] != CurveType.STATIC:
                         if curve["curve_type"] == CurveType.REGULAR:
                             if curve["curve_style"] != CurvePlotStyle.SCATTER:
+                                self._print_status_message(
+                                    "plot " + str(curve["data"][:curves_size, 0])
+                                )
                                 curve["line"].set_data(
                                     curve["data"][:curves_size, 0],
                                     curve["data"][:curves_size, 1],
                                 )
                             else:
+                                self._print_status_message("scatter")
                                 curve["line"].set_offsets(
                                     curve["data"][:curves_size, :],
                                 )
