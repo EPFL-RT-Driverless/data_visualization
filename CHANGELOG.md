@@ -1,3 +1,6 @@
+# v1.2.0
+added telemetry visualization templates and tests to demo the visualization from mock car data.
+
 # v1.0.5
 
 :bug: fixed bugs with Live Dynamic modes and save
