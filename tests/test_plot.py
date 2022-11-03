@@ -1,9 +1,6 @@
 import numpy as np
 import argparse
 import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from track_database import skidpad, acceleration_track
 from data_visualization.plot import *
