@@ -423,7 +423,7 @@ class Plot(ErrorMessageMixin):
 
     def _dynamic_frame(self):
         n = 0
-        while self._dynamic_current_frame < self._length_curves:
+        while self._dynamic_current_frame-1 < self._length_curves:
             yield n
             n += 1
 
