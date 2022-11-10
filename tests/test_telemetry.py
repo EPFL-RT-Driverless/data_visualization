@@ -24,7 +24,7 @@ def main():
         test_plot_telemetry(track, show_units=show_units)
 
 
-def test_plot_telemetry(track, show_units=False):
+def test_plot_telemetry(track="skidpad", show_units=False):
     center_line, _, _, _ = (
         skidpad(0.5) if track == "skidpad" else acceleration_track(0.5)
     )
