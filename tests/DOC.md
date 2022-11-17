@@ -46,16 +46,18 @@ These types refer to the matplotlib plotting functions, they are defined in the 
 
 ### Declare a plot
 To declare a plot, you need to create a `Plot` object. It takes 3 necessary arguments :
-- `title` : the title of the plot.
+- `mode` : the PlotMode enum value of the plot.
 - `row_nbr` : the number of rows in the grid.
 - `col_nbr` : the number of columns in the grid.
 Other arguments are optional :
-- `sampling_time`: sampling time used in the experiment, only needed if the temporal subplots need to have an x axis 
+- `sampling_time` `(optional)`: sampling time used in the experiment, only needed if the temporal subplots need to have an x axis 
 with time instead of number of iterations.
-- `interval` : the interval, in milliseconds, between each frame in dynamic (or live dynamic) plot, only needed if 
+- `interval` `(optional)` : the interval, in milliseconds, between each frame in dynamic (or live dynamic) plot, only needed if 
 the plot mode is dynamic or live dynamic.
-- `figsize` : the size of the matplotlib figure, in inches.
-- Some `kwargs` that are passed to the `ErrorMessageMixin` class and to the socket for live dynamic.*
+- `figsize` `(optional)` : the size of the matplotlib figure, in inches.
+- `host` `(optional)` : the host of the plot, only used if the plot mode is live dynamic.
+- `port` `(optional)` : the port of the plot, only used if the plot mode is live dynamic.
+- Some `kwargs` that are passed to the `ErrorMessageMixin` class and to the socket for live dynamic.
 
 ### Add a subplot
 To add a subplot to the plot, you need to call the `add_subplot` function of the `Plot` object. Here are the details
@@ -68,7 +70,7 @@ of the arguments :
 - `show_unit` : boolean, if True the unit is shown in the title of the subplot.
 - `curves` : a dictionary of curves to be plotted in the subplot, see below for more details :
     - a `string` : the key and name of the curve.
-    - a `dict` : a nested dictionary describing the curve (Make sure to **respect the names**.):
+    - a `dict` : a nested dictionary describing the curve (Make sure to **respect the names**) :
         - `"data"` : the data to be plotted, a list of points. The dimensions depend on the subplot type :
             - spatial : 2D points, of shape (n, 2).
             - temporal : 1D points, of shape (n, 1).
@@ -77,6 +79,27 @@ of the arguments :
         - `"curve_style"` : the style of the curve, see `CurvePlotType` enum.
         - `"mlp_options"` : options to be passed to matplotlib in the plotting function; it is a dictionary.
         
-      
+### Dynamic plots
+Dynamic mode can be used to show in real time the evolution of some data. These data should be already computed. When 
+initializing the subplot. It can also be used to create a video of the evolution of the data. To do so, you need to call 
+??
 
+### Live dynamic plots
+Live dynamic mode can be used to show some data while they are being computed. The data is sent to the plot through network.
+Hence, it can be used to plot some data computed on another machine. 
 
+_Add details on the protocol._
+
+### Examples
+You can find examples in the tests folder. For dynamic and static plots, you can read the `test_plot.py` file, or 
+`test_telemetry.py`. For live dynamic plots, you can read both files in tests/test_live_dynamic folder.
+
+### Build a video from a dynamic plot
+When calling the function `plot`, after initializing the plot, you can pass the argument `save_path` to save the video 
+at the specified path. The methods needs FFMpeg encoder to be installed on your machine. If it is not follow this 
+[tutorial](https://holypython.com/how-to-save-matplotlib-animations-the-ultimate-guide/) (paragraph "2) Installing FFMpeg").
+And you can find the download link [here](https://www.ffmpeg.org/download.html).
+
+I you don't want to install FFMpeg you can use another writer for matplotlib : PillowWriter. To do so, just comment and 
+uncomment the lines in the call of `self._anim.save` in the function `plot` of the `Plot` class (`plot.py`). The drawback 
+is the format: it only allows to save the video in .gif format.
