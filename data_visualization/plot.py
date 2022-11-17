@@ -8,9 +8,10 @@ from typing import Optional, Union
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt, style as mplstyle
-from matplotlib.animation import FuncAnimation, FFMpegWriter
+from matplotlib.animation import FuncAnimation, FFMpegWriter, PillowWriter
 from matplotlib.figure import Figure
 from matplotlib.gridspec import GridSpec
+import matplotlib as mpl
 
 from matplotlib import style as mplstyle
 from matplotlib import patches as ptc
@@ -411,11 +412,17 @@ class Plot(ErrorMessageMixin):
 
         if save_path is not None:
             if self.mode == PlotMode.DYNAMIC:
-                self._anim.save(
-                    filename=save_path,
-                    writer=FFMpegWriter(fps=20),
-                    dpi=300,
-                )
+                # mpl.rcParams['animation.ffmpeg_path'] = r'C:\Users\Philippe\Downloads\ffmpeg-2022-11-03-git-5ccd4d3060-essentials_build\ffmpeg-2022-11-03-git-5ccd4d3060-essentials_build\bin\ffmpeg.exe'
+                try:
+                    self._anim.save(
+                        filename=save_path,
+                        # writer=PillowWriter(fps=20),
+                        writer=FFMpegWriter(fps=20),
+                        dpi=300,
+                    )
+                except Exception as e:
+                    print("Error while saving animation: ", e)
+                    print("If the error comes from a missing file please refer to the package documentation to install FFMpeg")
             else:
                 warnings.warn("cannot save static and live dynamic plots")
 
@@ -713,8 +720,8 @@ class Plot(ErrorMessageMixin):
                         else:
                             # we have curve["curve_type"] == CurveType.PREDICTION
                             xdata = (
-                                np.arange(curve["data"].size, dtype=np.float)
-                                + curves_size
+                                np.arange(curve["data"].shape[1], dtype=np.float)
+                                + curves_size*curve["data"].shape[1]
                                 - 1
                             )
                         if self._sampling_time is not None:
@@ -725,7 +732,7 @@ class Plot(ErrorMessageMixin):
                                 xdata,
                                 curve["data"][:curves_size]
                                 if curve["curve_type"] == CurveType.REGULAR
-                                else curve["data"],
+                                else curve["data"] if curve["curve_type"] == CurveType.STATIC else curve["data"][curves_size-1],
                             )
                         else:
                             curve["line"].set_offsets(
