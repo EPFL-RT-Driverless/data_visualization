@@ -418,6 +418,39 @@ def test_temporal_plot_loglog(mode: int, mode_name: str):
     )
     plot.plot(show=True)
 
+def test_prediction():
+    plot = Plot(
+        mode=PlotMode.DYNAMIC,
+        sampling_time=0.1,
+        interval=10,
+        row_nbr=1,
+        col_nbr=1,
+    )
+    plot.add_subplot(
+        subplot_name="test prediction",
+        subplot_type=SubplotType.TEMPORAL,
+        row_idx=0,
+        col_idx=0,
+        unit="unit",
+        show_unit=True,
+        curves={
+            "yaw": {
+                "data": np.sin(np.linspace(0, 10 * np.pi, 1000).reshape(100, 10)),
+                "curve_type": CurveType.PREDICTION,
+                "curve_style": CurvePlotStyle.PLOT,
+                "options": {"color": "blue", "marker": "o"},
+            },
+            "yaw2": {
+                "data": np.cos(np.linspace(0, 10 * np.pi, 1000)),
+                "curve_type": CurveType.STATIC,
+                "curve_style": CurvePlotStyle.PLOT,
+                "options": {"color": "red", "marker": "o"},
+            },
+        }
+    )
+    plot.plot(show=True, save_path="test_prediction.mp4")
+    # plot.plot(show=True)
+
 @pytest.mark.skip("to be used for visual tests")
 def test_all():
     """
@@ -464,7 +497,7 @@ def test_all():
     test_spatial_plot_step(PlotMode.DYNAMIC, "DYNAMIC")
 
 if __name__ == "__main__":
-    test_all()
+    test_prediction()
     # plot = Plot(
     #     row_nbr=4,
     #     col_nbr=2,
