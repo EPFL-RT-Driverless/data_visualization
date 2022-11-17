@@ -299,7 +299,7 @@ class Plot(ErrorMessageMixin):
                     if self.mode != PlotMode.LIVE_DYNAMIC:
                         assert (
                             curve_values["data"].ndim == 3
-                            and curve_values["data"].shape[1] == 2
+                            and curve_values["data"].shape[2] == 2
                         )
                         if self._length_curves == 0:
                             self._length_curves = curve_values["data"].shape[0]
@@ -766,10 +766,10 @@ class Plot(ErrorMessageMixin):
                         elif curve["curve_type"] == CurveType.PREDICTION:
                             if curve["curve_style"] != CurvePlotStyle.SCATTER:
                                 curve["line"].set_data(
-                                    curve["data"][:, 0, curves_size - 1]
+                                    curve["data"][curves_size-1, :, 0]
                                     if self.mode == PlotMode.DYNAMIC
                                     else curve["data"][:, 0],
-                                    curve["data"][:, 1, curves_size - 1]
+                                    curve["data"][curves_size-1, :, 1]
                                     if self.mode == PlotMode.DYNAMIC
                                     else curve["data"][:, 1],
                                 )
