@@ -56,6 +56,7 @@ def test_same_name():
                 },
             }
         )
+    plot.plot(show=False)
 
 def test_superpose():
     with pytest.raises(ValueError,match="The subplot superposes with other subplots"):
@@ -110,6 +111,7 @@ def test_superpose():
                 },
             }
         )
+    plot.plot(show=False)
 
 
 @pytest.mark.parametrize("mode,mode_name", [(PlotMode.STATIC, "STATIC"), (PlotMode.DYNAMIC, "DYNAMIC")])
@@ -427,7 +429,7 @@ def test_temporal_prediction():
         col_nbr=1,
     )
     plot.add_subplot(
-        subplot_name="test prediction",
+        subplot_name="test prediction temporal",
         subplot_type=SubplotType.TEMPORAL,
         row_idx=0,
         col_idx=0,
@@ -460,7 +462,7 @@ def test_spatial_prediction():
         col_nbr=1,
     )
     plot.add_subplot(
-        subplot_name="test prediction",
+        subplot_name="test prediction spatial",
         subplot_type=SubplotType.SPATIAL,
         row_idx=0,
         col_idx=0,
@@ -529,8 +531,43 @@ def test_all():
     """
     test_spatial_plot_step(PlotMode.DYNAMIC, "DYNAMIC")
 
-if __name__ == "__main__":
+    """
+    you should see a 2d plot :
+        - an exponential curve with x axis in log scale
+    """
+    test_temporal_plot_semilogx(PlotMode.STATIC, "STATIC")
+
+    """
+    you should see a 2d plot :
+        - an exponential curve with y axis in log scale
+    """
+    test_temporal_plot_semilogy(PlotMode.STATIC, "STATIC")
+
+    """
+    you should see a 2d plot :
+        - an exponential curve with x and y axis in log scale
+    """
+    test_temporal_plot_loglog(PlotMode.STATIC, "STATIC")
+
+    """
+    you should see a dynamic 2d plot :
+        - a line drawing a sin curve with a prediction of the next 10 points
+        - a cos curve
+    """
+    test_temporal_prediction()
+
+    """
+    you should see a dynamic 2d plot :
+        - a line drawing a sin curve with a prediction of the next 10 points
+        - a cos curve
+    """
     test_spatial_prediction()
+        
+        
+
+if __name__ == "__main__":
+    test_all()
+    # test_spatial_prediction()
     # plot = Plot(
     #     row_nbr=4,
     #     col_nbr=2,
