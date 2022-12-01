@@ -486,6 +486,41 @@ def test_spatial_prediction():
     # plot.plot(show=True, save_path="test_prediction.mp4")
     plot.plot(show=True)
 
+def test_car():
+    plot = Plot(
+        mode=PlotMode.DYNAMIC,
+        sampling_time=0.1,
+        interval=10,
+        row_nbr=1,
+        col_nbr=1,
+        show_car=True,
+    )
+    plot.add_subplot(
+        subplot_name="test car",
+        subplot_type=SubplotType.SPATIAL,
+        row_idx=0,
+        col_idx=0,
+        unit="unit",
+        show_unit=True,
+        curves={
+            "yaw": {
+                "data": 10*np.array([np.linspace(0, 10 * np.pi, 100), np.cos(np.linspace(0, 10 * np.pi, 100))]).T,
+                "curve_type": CurveType.REGULAR,
+                "curve_style": CurvePlotStyle.PLOT,
+            },
+            "yaw2": {
+                "data": 10 * np.array([np.linspace(0, 10 * np.pi, 100), np.sin(np.linspace(0, 10 * np.pi, 100))]).T,
+                "curve_type": CurveType.REGULAR,
+                "curve_style": CurvePlotStyle.PLOT,
+            },
+        },
+        car_data_type="_trajectory",
+        car_data_names=["yaw", "yaw2"],
+        car_ids=[1, 2],
+    )
+    plot.plot(show=True, save_path="D:/PycharmProjects/RT/venv/src/data-visualization/tests/test_2_cars.mp4")
+    # plot.plot(show=True)
+
 @pytest.mark.skip("to be used for visual tests")
 def test_all():
     """
@@ -566,7 +601,7 @@ def test_all():
         
 
 if __name__ == "__main__":
-    test_all()
+    test_car()
     # test_spatial_prediction()
     # plot = Plot(
     #     row_nbr=4,
