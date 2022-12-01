@@ -61,16 +61,19 @@ class CurvePlotStyle(Enum):
     SEMILOGY = 4
     LOGLOG = 5
 
+
 class Car:
-    _trajectory : tuple
-    _orientation : tuple
-    _steering : tuple
-    _show_car : bool
+    _trajectory: tuple
+    _orientation: tuple
+    _steering: tuple
+    _show_car: bool
+
     def __init__(self):
         self._trajectory = None
         self._orientation = None
         self._steering = None
         self._show_car = False
+
 
 class Plot(ErrorMessageMixin):
     """
@@ -107,8 +110,8 @@ class Plot(ErrorMessageMixin):
 
     # value to show the cars or not and to know what to show
     _show_car: bool
-    _cars : list
-    _show_cars : bool
+    _cars: list
+    _show_cars: bool
 
     def __init__(
         self,
@@ -340,23 +343,32 @@ class Plot(ErrorMessageMixin):
 
         # update the _subplot_names lis
 
-        if (car_data_names is not None and car_data_type is not None and car_ids is not None):
-            assert (len(car_data_names) == len(car_ids)), "car_data_name and car_id must have the same length"
+        if (
+            car_data_names is not None
+            and car_data_type is not None
+            and car_ids is not None
+        ):
+            assert len(car_data_names) == len(
+                car_ids
+            ), "car_data_name and car_id must have the same length"
             for a in range(len(car_ids)):
                 i = car_ids[a]
                 car_data_name = car_data_names[a]
-                assert (i <= len(self._cars)+1), "Car index out of range"
-                if (len(self._cars) >= i):
-                    i = i-1
+                assert i <= len(self._cars) + 1, "Car index out of range"
+                if len(self._cars) >= i:
+                    i = i - 1
                     car_attribute = self._cars[i].__dict__[car_data_type]
-                    if (car_attribute is None):
+                    if car_attribute is None:
                         car_attribute = (subplot_name, car_data_name)
                         if car_data_type == "_trajectory":
                             self._cars[i].show_car = True
                 else:
-                    i = i-1
+                    i = i - 1
                     self._cars.append(Car())
-                    self._cars[i].__dict__[car_data_type] = (subplot_name, car_data_name)
+                    self._cars[i].__dict__[car_data_type] = (
+                        subplot_name,
+                        car_data_name,
+                    )
                     if car_data_type == "_trajectory":
                         self._cars[i]._show_car = True
 
@@ -453,7 +465,9 @@ class Plot(ErrorMessageMixin):
                     )
                 except Exception as e:
                     print("Error while saving animation: ", e)
-                    print("If the error comes from a missing file please refer to the package documentation to install FFMpeg")
+                    print(
+                        "If the error comes from a missing file please refer to the package documentation to install FFMpeg"
+                    )
             else:
                 warnings.warn("cannot save static and live dynamic plots")
 
@@ -463,7 +477,7 @@ class Plot(ErrorMessageMixin):
 
     def _dynamic_frame(self):
         n = 0
-        while self._dynamic_current_frame-1 < self._length_curves:
+        while self._dynamic_current_frame - 1 < self._length_curves:
             yield n
             n += 1
 
@@ -752,7 +766,7 @@ class Plot(ErrorMessageMixin):
                             # we have curve["curve_type"] == CurveType.PREDICTION
                             xdata = (
                                 np.arange(curve["data"].shape[1], dtype=np.float)
-                                + curves_size*curve["data"].shape[1]
+                                + curves_size * curve["data"].shape[1]
                                 - 1
                             )
                         if self._sampling_time is not None:
@@ -763,7 +777,9 @@ class Plot(ErrorMessageMixin):
                                 xdata,
                                 curve["data"][:curves_size]
                                 if curve["curve_type"] == CurveType.REGULAR
-                                else curve["data"] if curve["curve_type"] == CurveType.STATIC else curve["data"][curves_size-1],
+                                else curve["data"]
+                                if curve["curve_type"] == CurveType.STATIC
+                                else curve["data"][curves_size - 1],
                             )
                         else:
                             curve["line"].set_offsets(
@@ -797,10 +813,10 @@ class Plot(ErrorMessageMixin):
                         elif curve["curve_type"] == CurveType.PREDICTION:
                             if curve["curve_style"] != CurvePlotStyle.SCATTER:
                                 curve["line"].set_data(
-                                    curve["data"][curves_size-1, :, 0]
+                                    curve["data"][curves_size - 1, :, 0]
                                     if self.mode == PlotMode.DYNAMIC
                                     else curve["data"][:, 0],
-                                    curve["data"][curves_size-1, :, 1]
+                                    curve["data"][curves_size - 1, :, 1]
                                     if self.mode == PlotMode.DYNAMIC
                                     else curve["data"][:, 1],
                                 )
@@ -822,26 +838,41 @@ class Plot(ErrorMessageMixin):
         if self._show_cars:
             for car in self._cars:
                 if car._show_car:
-                    translate = self._content[car._trajectory[0]]["curves"][car._trajectory[1]]["data"][
-                        curves_size-1
-                    ]
+                    translate = self._content[car._trajectory[0]]["curves"][
+                        car._trajectory[1]
+                    ]["data"][curves_size - 1]
 
                     phi = np.pi
                     if (
                         self._car_phi
-                        and len(self._content[car._orientation[0]]["curves"][car._orientation[1]]["data"]) > curves_size
+                        and len(
+                            self._content[car._orientation[0]]["curves"][
+                                car._orientation[1]
+                            ]["data"]
+                        )
+                        > curves_size
                     ):
                         phi = np.deg2rad(
-                            self._content[car._orientation[0]]["curves"][car._orientation[1]]["data"][curves_size-1] - 90
+                            self._content[car._orientation[0]]["curves"][
+                                car._orientation[1]
+                            ]["data"][curves_size - 1]
+                            - 90
                         )
 
                     delta = 0
                     if (
                         self._wheel_delta
-                        and len(self._content[car._steering[0]]["curves"][car._steering[1]]["data"]) > curves_size
+                        and len(
+                            self._content[car._steering[0]]["curves"][car._steering[1]][
+                                "data"
+                            ]
+                        )
+                        > curves_size
                     ):
                         delta = np.deg2rad(
-                            self._content[car._steering[0]]["curves"][car._steering[1]]["data"][curves_size-1]
+                            self._content[car._steering[0]]["curves"][car._steering[1]][
+                                "data"
+                            ][curves_size - 1]
                         )
 
                     # car measurements
@@ -908,7 +939,11 @@ class Plot(ErrorMessageMixin):
                     pos_wtl = rotation_theta_phi @ pos_wtl + translate_wtl
                     # pos_wtl += translate_wtl
                     wheel_tl = ptc.Rectangle(
-                        pos_wtl, w_wheel, h_wheel, angle=np.rad2deg(delta + phi), color="black"
+                        pos_wtl,
+                        w_wheel,
+                        h_wheel,
+                        angle=np.rad2deg(delta + phi),
+                        color="black",
                     )
 
                     # wheel top right
@@ -916,13 +951,20 @@ class Plot(ErrorMessageMixin):
                     translate_wtr = (
                         rotation_phi
                         @ np.array(
-                            [center_to_wheels - 0.05, h_car / 2 - h_spoiler - h_wheel / 2 - 0.1]
+                            [
+                                center_to_wheels - 0.05,
+                                h_car / 2 - h_spoiler - h_wheel / 2 - 0.1,
+                            ]
                         )
                         + translate
                     )
                     pos_wtr = rotation_theta_phi @ pos_wtr + translate_wtr
                     wheel_tr = ptc.Rectangle(
-                        pos_wtr, w_wheel, h_wheel, angle=np.rad2deg(delta + phi), color="black"
+                        pos_wtr,
+                        w_wheel,
+                        h_wheel,
+                        angle=np.rad2deg(delta + phi),
+                        color="black",
                     )
 
                     # wheel bottom left
@@ -960,7 +1002,9 @@ class Plot(ErrorMessageMixin):
                     )
 
                     # 7 patches per car so clear only if all cars are drawn
-                    if len(self._content[car._trajectory[0]]["ax"].patches) > 7*(len(self._cars)-1):
+                    if len(self._content[car._trajectory[0]]["ax"].patches) > 7 * (
+                        len(self._cars) - 1
+                    ):
                         self._content[car._trajectory[0]]["ax"].patches.clear()
                     self._content[car._trajectory[0]]["ax"].add_patch(car_body)
                     self._content[car._trajectory[0]]["ax"].add_patch(front_spoiler)
