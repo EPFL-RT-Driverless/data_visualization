@@ -67,7 +67,7 @@ of the arguments :
 - `col_idx` : the column index of the subplot in the grid.
 - `subplot_type` : the type of the subplot, see `SubplotType` enum.
 - `unit` : the unit of the data to be plotted.
-- `show_unit` : boolean, if True the unit is shown in the title of the subplot.
+- `show_unit` : boolean, if `True` the unit is shown in the title of the subplot.
 - `curves` : a dictionary of curves to be plotted in the subplot, see below for more details :
     - a `string` : the key and name of the curve.
     - a `dict` : a nested dictionary describing the curve (Make sure to **respect the names**) :
@@ -78,16 +78,15 @@ of the arguments :
         - `"curve_type"` : the type of the curve, see `CurveType` enum.
         - `"curve_style"` : the style of the curve, see `CurvePlotType` enum.
         - `"mlp_options"` : options to be passed to matplotlib in the plotting function; it is a dictionary.
-- `car_data_type : string` : the type of data to link to the car (see class Car).
-- `car_data_names : list[string]` : i-th value is the name of the curve containing the data for the data_type attribute of the 
+- `car_data_type : string` `(optional)` : the type of data to link to the car (see class Car).
+- `car_data_names : list[string]` `(optional)` : i-th value is the name of the curve containing the data for the data_type attribute of the 
 `car_id[i]`-th car.
-- `car_ids : list[int]` : ids of the car that are concerned by the data of the subplot. Must have same size as `car_data_names`. See 
+- `car_ids : list[int]` `(optional)` : ids of the car that are concerned by the data of the subplot. Must have same size as `car_data_names`. See 
 bellow for more details.
         
 ### Dynamic plots
 Dynamic mode can be used to show in real time the evolution of some data. These data should be already computed. When 
-initializing the subplot. It can also be used to create a video of the evolution of the data. To do so, you need to call 
-??
+initializing the subplot. It can also be used to create a video of the evolution of the data, see below.
 
 ### Live dynamic plots
 Live dynamic mode can be used to show some data while they are being computed. The data is sent to the plot through network.
