@@ -1,5 +1,15 @@
-# v1.2.0
+# v1.1.0
 added telemetry visualization templates and tests to demo the visualization from mock car data.
+
+added full testing for static and dynamic plots.
+
+added the car plotting feature.
+
+added documentation for the visualization module (see the `DOC.md` file).
+
+fixed bugs on prediction curves.
+
+fixed a bug one video creation.
 
 # v1.0.5
 
