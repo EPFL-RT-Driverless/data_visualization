@@ -78,6 +78,11 @@ of the arguments :
         - `"curve_type"` : the type of the curve, see `CurveType` enum.
         - `"curve_style"` : the style of the curve, see `CurvePlotType` enum.
         - `"mlp_options"` : options to be passed to matplotlib in the plotting function; it is a dictionary.
+- `car_data_type : string` : the type of data to link to the car (see class Car).
+- `car_data_names : list[string]` : i-th value is the name of the curve containing the data for the data_type attribute of the 
+`car_id[i]`-th car.
+- `car_ids : list[int]` : ids of the car that are concerned by the data of the subplot. Must have same size as `car_data_names`. See 
+bellow for more details.
         
 ### Dynamic plots
 Dynamic mode can be used to show in real time the evolution of some data. These data should be already computed. When 
@@ -103,3 +108,21 @@ And you can find the download link [here](https://www.ffmpeg.org/download.html).
 I you don't want to install FFMpeg you can use another writer for matplotlib : PillowWriter. To do so, just comment and 
 uncomment the lines in the call of `self._anim.save` in the function `plot` of the `Plot` class (`plot.py`). The drawback 
 is the format: it only allows to save the video in .gif format.
+
+### Plotting a simple representation of the car
+You have the possibility to plot a simple representation of the car. To do so, you need to pass the argument `show_car=true` 
+while initializing the plot.  
+
+The class `Car` is used to know which data to use : 
+- `_trajectory : string` : the trajectory of the car.
+- `_orientation : string` : the orientation angle of the car.
+- `_steering : string` : the steering angle of the car.
+
+These attributes are set while adding a subplot. The argument `car_data_type : string` is used to precise which attribute 
+to set. The argument `car_data_names : list[string]` is used to precise which curve to use for the data. The argument
+`car_ids : list[int]` is used to precise which car is concerned by the data.
+
+To add a new car you simply need to pass the next id in the argument `car_ids` and the list of cars will be updated automatically.  
+
+And a attribute `_show_car` that stays `False` until the `_trajectory` attribute is set. This attribute is the only one 
+necessary to plot the car.
