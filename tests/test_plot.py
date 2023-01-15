@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import pytest
 
@@ -119,7 +121,7 @@ def test_superpose():
 @pytest.mark.parametrize(
     "mode,mode_name", [(PlotMode.STATIC, "STATIC"), (PlotMode.DYNAMIC, "DYNAMIC")]
 )
-def test_spatial_plot_scatter(mode: int, mode_name: str):
+def test_spatial_plot_scatter(mode: PlotMode, mode_name: str):
     plot = Plot(
         mode=mode,
         sampling_time=0.1,
@@ -182,7 +184,7 @@ def test_spatial_plot_scatter(mode: int, mode_name: str):
 @pytest.mark.parametrize(
     "mode,mode_name", [(PlotMode.STATIC, "STATIC"), (PlotMode.DYNAMIC, "DYNAMIC")]
 )
-def test_spatial_plot_plot(mode: int, mode_name: str):
+def test_spatial_plot_plot(mode: PlotMode, mode_name: str):
     plot = Plot(
         mode=mode,
         sampling_time=0.1,
@@ -244,7 +246,7 @@ def test_spatial_plot_plot(mode: int, mode_name: str):
 @pytest.mark.parametrize(
     "mode,mode_name", [(PlotMode.STATIC, "STATIC"), (PlotMode.DYNAMIC, "DYNAMIC")]
 )
-def test_spatial_plot_step(mode: int, mode_name: str):
+def test_spatial_plot_step(mode: PlotMode, mode_name: str):
     plot = Plot(
         mode=mode,
         sampling_time=0.1,
@@ -278,7 +280,7 @@ def test_spatial_plot_step(mode: int, mode_name: str):
 
 
 @pytest.mark.parametrize("mode,mode_name", [(PlotMode.STATIC, "STATIC")])
-def test_temporal_plot_scatter(mode: int, mode_name: str):
+def test_temporal_plot_scatter(mode: PlotMode, mode_name: str):
     plot = Plot(
         mode=mode,
         sampling_time=0.1,
@@ -308,7 +310,7 @@ def test_temporal_plot_scatter(mode: int, mode_name: str):
 @pytest.mark.parametrize(
     "mode,mode_name", [(PlotMode.STATIC, "STATIC"), (PlotMode.DYNAMIC, "DYNAMIC")]
 )
-def test_temporal_plot_plot(mode: int, mode_name: str):
+def test_temporal_plot_plot(mode: PlotMode, mode_name: str):
     plot = Plot(
         mode=mode,
         sampling_time=0.1,
@@ -338,7 +340,7 @@ def test_temporal_plot_plot(mode: int, mode_name: str):
 @pytest.mark.parametrize(
     "mode,mode_name", [(PlotMode.STATIC, "STATIC"), (PlotMode.DYNAMIC, "DYNAMIC")]
 )
-def test_temporal_plot_step(mode: int, mode_name: str):
+def test_temporal_plot_step(mode: PlotMode, mode_name: str):
     plot = Plot(
         mode=mode,
         sampling_time=0.1,
@@ -368,7 +370,7 @@ def test_temporal_plot_step(mode: int, mode_name: str):
 @pytest.mark.parametrize(
     "mode,mode_name", [(PlotMode.STATIC, "STATIC"), (PlotMode.DYNAMIC, "DYNAMIC")]
 )
-def test_temporal_plot_semilogx(mode: int, mode_name: str):
+def test_temporal_plot_semilogx(mode: PlotMode, mode_name: str):
     plot = Plot(
         mode=mode,
         sampling_time=1.0,
@@ -398,7 +400,7 @@ def test_temporal_plot_semilogx(mode: int, mode_name: str):
 @pytest.mark.parametrize(
     "mode,mode_name", [(PlotMode.STATIC, "STATIC"), (PlotMode.DYNAMIC, "DYNAMIC")]
 )
-def test_temporal_plot_semilogy(mode: int, mode_name: str):
+def test_temporal_plot_semilogy(mode: PlotMode, mode_name: str):
     plot = Plot(
         mode=mode,
         sampling_time=1.0,
@@ -428,7 +430,7 @@ def test_temporal_plot_semilogy(mode: int, mode_name: str):
 @pytest.mark.parametrize(
     "mode,mode_name", [(PlotMode.STATIC, "STATIC"), (PlotMode.DYNAMIC, "DYNAMIC")]
 )
-def test_temporal_plot_loglog(mode: int, mode_name: str):
+def test_temporal_plot_loglog(mode: PlotMode, mode_name: str):
     plot = Plot(
         mode=mode,
         sampling_time=1.0,
@@ -579,9 +581,8 @@ def test_car():
     )
     plot.plot(
         show=True,
-        save_path="D:/PycharmProjects/RT/venv/src/data-visualization/tests/test_2_cars.mp4",
+        save_path=os.path.join(os.path.dirname(__file__), "test_car.mp4"),
     )
-    # plot.plot(show=True)
 
 
 @pytest.mark.skip("to be used for visual tests")
@@ -603,7 +604,7 @@ def test_all():
 
     """
     you should see a 2d plot :
-        - randomly distributed red triangles with a line connecting them 
+        - randomly distributed red triangles with a line connecting them
         - 127 written with lines
     """
     test_spatial_plot_plot(PlotMode.STATIC, "STATIC")

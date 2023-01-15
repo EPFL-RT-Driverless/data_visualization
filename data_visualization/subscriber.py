@@ -5,6 +5,7 @@ from multiprocessing import Queue
 from socket import socket, AF_INET, SOCK_STREAM
 
 from .constants import *
+from .constants import ErrorMessageMixin
 
 __all__ = ["Subscriber", "launch_client"]
 

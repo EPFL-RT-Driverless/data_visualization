@@ -1,4 +1,4 @@
-#  Copyright (c) 2022. Tudor Oancea, Mattéo Berthet, EPFL Racing Team Driverless
+#  Copyright (c) 2022. Tudor Oancea, Mattéo Berthet, Philippe Servant, EPFL Racing Team Driverless
 import multiprocessing as mp
 import warnings
 from enum import Enum
@@ -7,53 +7,84 @@ from typing import Optional, Union
 
 import cv2
 import numpy as np
-from matplotlib import pyplot as plt, style as mplstyle
-from matplotlib.animation import FuncAnimation, FFMpegWriter, PillowWriter
+from matplotlib import patches as ptc
+from matplotlib import pyplot as plt
+from matplotlib import style as mplstyle
+from matplotlib.animation import FuncAnimation, FFMpegWriter
 from matplotlib.figure import Figure
 from matplotlib.gridspec import GridSpec
-import matplotlib as mpl
-
-from matplotlib import style as mplstyle
-from matplotlib import patches as ptc
-
-from .constants import *
-from .subscriber import launch_client
-
-from .constants import *
-from .subscriber import launch_client
 from track_database import skidpad, acceleration_track
+
+from .constants import *
+from .constants import ErrorMessageMixin
+from .subscriber import launch_client
 
 __all__ = ["Plot", "PlotMode", "SubplotType", "CurveType", "CurvePlotStyle"]
 
 
-class MyFuncAnimation(FuncAnimation):
-    def _end_redraw(self, event):
-        # Now that the redraw has happened, do the post draw flushing and
-        # blit handling. Then re-enable all of the original events.
-        self._post_draw(None, True)
-        self.event_source.start()
-        self._fig.canvas.mpl_disconnect(self._resize_id)
-        self._resize_id = self._fig.canvas.mpl_connect("resize_event", self._on_resize)
-
-
 class PlotMode(Enum):
+    """
+    Enum used to specify the mode of the plot. Available modes are:
+    - STATIC: classic way of plotting data, all the curves are plotted at once, without any animation.
+    - DYNAMIC: creates an animated way of displaying data that is already generated and that is provided at the
+        creation of the plot (e.g. after the simulation you were running has ended).
+    - LIVE_DYNAMIC: just as the dynamic mode, the live dynamic mode can be used to display animated data. The
+        difference is that the data does not need to already be generated and can be provided to the `Plot` object
+        throughout the experiment via a socket communication mechanism.
+
+    See `README.md` for more details.
+    """
+
     STATIC = 0
     DYNAMIC = 1
     LIVE_DYNAMIC = 2
 
 
 class SubplotType(Enum):
+    """
+    Enum used to specify the type of subplot. Available types are:
+    - SPATIAL : the data is plotted on a 2D space.
+    - TEMPORAL : the data is plotted on a 1D space as a function of time.
+
+    See `README.md` for more details.
+    """
+
     SPATIAL = 0
     TEMPORAL = 1
 
 
 class CurveType(Enum):
+    """
+    Enum used to specify the type of curve. Available types are:
+    - STATIC: the curve is plotted once at the creation of the Plot and in dynamic and live dynamic modes
+    does not change throughout the animation.
+    - REGULAR: in static mode the curve is simply displayed, in dynamic and live dynamic modes, the
+        curve is animated by appending values to it at each iteration.
+    - PREDICTION: only used in dynamic and live dynamic modes (ignored in static mode), the curve is fully redrawn at
+        each iteration instead of appending values to it.
+
+    See `README.md` for more details.
+    """
+
     STATIC = 0
     REGULAR = 1
     PREDICTION = 2
 
 
 class CurvePlotStyle(Enum):
+    """
+    Enum used to specify the style of the curve. Available styles are:
+    - PLOT: continuous line obtained by connecting the points with straight lines.
+    - SCATTER : scatter plot, i.e. individual data points that are not connected.
+    - STEP: staircase plot, see [matplotlib documentation](https://matplotlib.org/stable/gallery/lines_bars_and_markers/step_demo.html#sphx-glr-gallery-lines-bars-and-markers-step-demo-py)
+      for more details.
+    - SEMILOGX: just like plot but the x-axis is in log scale.
+    - SEMILOGY: just like plot but the y-axis is in log scale.
+    - LOGLOG: just like plot but both the x-axis and the y-axis are in log scale.
+
+    See `README.md` for more details.
+    """
+
     PLOT = 0
     SCATTER = 1
     STEP = 2
@@ -63,22 +94,25 @@ class CurvePlotStyle(Enum):
 
 
 class Car:
-    _trajectory: tuple
-    _orientation: tuple
-    _steering: tuple
-    _show_car: bool
+    """
+    Class used to represent the car in the plot. The car is represented by a rectangle that is rotated
+    according to the orientation of the car and whose tires are rotated according to the steering angle.
+    """
+
+    _trajectory: Optional[tuple]
+    _orientation: Optional[tuple]
+    _steering: Optional[tuple]
+    show_car: bool
 
     def __init__(self):
         self._trajectory = None
         self._orientation = None
         self._steering = None
-        self._show_car = False
+        self.show_car = False
 
 
 class Plot(ErrorMessageMixin):
     """
-    Description:
-    -----------
     This class can be used to plot the evolution of several measures throughout time. A
     matplotlib figure is created containing a gridspec on which you can add subplots
     taking one or several (contiguous) positions. In these subplots you can add several
@@ -127,13 +161,34 @@ class Plot(ErrorMessageMixin):
         **kwargs,
     ):
         """
-        Initializes the plot with an empty Gridspec of size row_nbr x col_nbr.
+        Initializes the plot with an empty Gridspec of size row_nbr x col_nbr and specifies the plot mode and several
+        important options.
 
         :param mode: the mode of the plot. Can be STATIC, DYNAMIC, or LIVE_DYNAMIC
+        :type mode: PlotMode
         :param row_nbr: number of rows
+        :type row_nbr: int
         :param col_nbr: number of columns
-        :param interval: interval between frames in milliseconds, only needed for DYNAMIC and LIVE_DYNAMIC
-        :param sampling_time: sampling time used in the experiment, only needed if the temporal subplots need to have an x axis with time instead of number of iteration
+        :type col_nbr: int
+        :param figsize: size of the figure (in inches, see matplotlib documentation for more details)
+        :type figsize: tuple[float, float]
+        :param interval: interval between frames in milliseconds, only needed for DYNAMIC and LIVE_DYNAMIC modes,
+            ignored in STATIC mode
+        :type interval: int
+        :param sampling_time: sampling time used in the experiment, only needed if the temporal subplots need to have
+            an x-axis with time instead of number of iteration
+        :type sampling_time: float
+        :param host: host of the socket server to which to connect for socket communication, only needed for
+            LIVE_DYNAMIC mode, ignored in STATIC and DYNAMIC modes
+        :type host: str
+        :param port: port of the socket server to which to connect for socket communication, only needed for
+            LIVE_DYNAMIC mode, ignored in STATIC and DYNAMIC modes
+        :type port: int
+        :param show_car: boolean to show the car or not
+        :type show_car: bool
+        :param kwargs: additional arguments to pass to the ErrorMessageMixin constructor (right now only the verbose
+            parameter to display error messages or not for the communication).
+        :type kwargs: dict
         """
         super().__init__(**kwargs)
         self.mode = mode
@@ -187,22 +242,73 @@ class Plot(ErrorMessageMixin):
         unit: str,
         show_unit: bool,
         curves: dict,
-        car_data_type: str = None,
-        car_data_names: list = None,
-        car_ids: list = None,
+        car_data_type: Optional[str] = None,
+        car_data_names: Optional[list] = None,
+        car_ids: Optional[list] = None,
     ):
         """
         Adds a new subplot to the plot at a position specified by row_idx and col_idx
-        that should not be already taken by another subplot.
+        that should not be already taken by another subplot. If the position is already
+        taken, a ValueError is raised.
+
+        This method creates the subplot but doesn't draw anything on it. It only checks that the specified data is coherent
+        (options and data dimensions coherent with the plot mode, subplot type, curve type, etc.) and stores the data
+        in the _content dictionary. The actual drawing is done in the plot method.
+        If any incoherence is found, a ValueError is raised.
 
         :param subplot_name: name of the subplot that will be used as title
-        :param row_idx: row indices of the subplot, should be contiguous
-        :param col_idx: column indices of the subplot, should be contiguous
-        :param subplot_type: type of the subplot. Should be either SubplotType.SPATIAL or SubplotType.TEMPORAL
-        :param unit: unit of the subplot. Should be a string
+        :type subplot_name: str
+        :param row_idx: row indices of the subplot, should be contiguous. If they are not, a ValueError is raised.
+        :type row_idx: Union[slice, int, range]
+        :param col_idx: column indices of the subplot, should be contiguous. If they are not, a ValueError is raised.
+        :type col_idx: Union[slice, int, range]
+        :param subplot_type: type of the subplot. Should be either SubplotType.SPATIAL or SubplotType.TEMPORAL. See
+            the documentation of the SubplotType enum for more details.
+        :type subplot_type: SubplotType
+        :param unit: unit of the subplot. Example: "m", "m/s", "rad", "rad/s", "N", "Nm", "W", "V", "A", "C", "F", "Hz"
         :type unit: str
         :param show_unit: whether to show the unit of the subplot in the title or not.
-        :param curves: A dictionary of curves.
+        :type show_unit: bool
+        :param curves: A dictionary of curves of the following format:
+             curves={
+                 "curve_1": {
+                     "data": data_1,
+                     "curve_type": CurveType.STATIC,
+                     "curve_style": CurvePlotStyle.SCATTER,
+                     "mpl_options": {"color": "red", "marker": "^"},
+                },
+                "curve_2": {
+                    "data": data_2,
+                    "curve_type": CurveType.REGULAR,
+                    "curve_style": CurvePlotStyle.PLOT,
+                    "mpl_options": {"color": "blue"},
+                 },
+             }
+             The curve types and plot styles could of course change depending on the plot mode.
+             The data for each curve should be numpy arrays of the following dimensions:
+             - for spatial subplots
+             |  | static plot | dynamic plot | live dynamic plot |
+             | --- | --- | --- | --- |
+             | static curve | (anything, 2) | (anything, 2) | (anything, 2) |
+             | regular curve | (N,2) | (N,2) | None at initialization and (2,) at each publish |
+             | prediction curve | (N,M,2) | (N,M,2) | None at initialization and (M, 2) at each publish |
+
+             - for temporal subplots
+             |  | static plot | dynamic plot | live dynamic plot |
+             | --- | --- | --- | --- |
+             | static curve | (anything,) | (anything,) | (anything,) |
+             | regular curve | (N,) | (N,) | None at initialization and (1,) at each publish |
+             | prediction curve | (N,M) | (N,M) | None at initialization and (M,) at each publish |
+
+        :type curves: dict
+        :param car_data_type: the type of data to link to the car (see class Car).
+        :type car_data_type: Optional[str]
+        :param car_data_names: i-th value is the name of the curve containing the data for the data_type attribute of the
+          `car_id[i]`-th car.
+        :type car_data_names: Optional[list]
+        :param car_ids: ids of the car that are concerned by the data of the subplot. Must have same size as `car_data_names`. See
+          bellow for more details. ids to show
+        :type car_ids: Optional[list]
         """
         # check that there is no plot at the specified position
         col_idx = _convert_to_contiguous_slice(col_idx)
@@ -341,8 +447,7 @@ class Plot(ErrorMessageMixin):
             "curves": curves,
         }
 
-        # update the _subplot_names lis
-
+        # update the _subplot_names list
         if (
             car_data_names is not None
             and car_data_type is not None
@@ -356,6 +461,7 @@ class Plot(ErrorMessageMixin):
                 car_data_name = car_data_names[a]
                 assert i <= len(self._cars) + 1, "Car index out of range"
                 if len(self._cars) >= i:
+                    # car already exists
                     i = i - 1
                     car_attribute = self._cars[i].__dict__[car_data_type]
                     if car_attribute is None:
@@ -363,6 +469,7 @@ class Plot(ErrorMessageMixin):
                         if car_data_type == "_trajectory":
                             self._cars[i].show_car = True
                 else:
+                    # car does not exist yet
                     i = i - 1
                     self._cars.append(Car())
                     self._cars[i].__dict__[car_data_type] = (
@@ -370,9 +477,28 @@ class Plot(ErrorMessageMixin):
                         car_data_name,
                     )
                     if car_data_type == "_trajectory":
-                        self._cars[i]._show_car = True
+                        self._cars[i].show_car = True
+
+        elif (
+            car_data_names is not None
+            or car_data_type is not None
+            or car_ids is not None
+        ):
+            raise ValueError(
+                "car_data_names, car_data_type and car_ids must all be specified or all be None"
+            )
 
     def plot(self, show: bool = True, save_path: str = None):
+        """
+        Plots everything. In static mode, just plots everything once. In dynamic and live dynamic modes, plots the static
+        curves and then creates an animation based on FuncAnimation from matplotlib.animation.
+
+        :param show: whether to also call plt.show() at the end
+        :type show: bool
+        :param save_path: if not None, the path where to save the plot (image file for static mode, video for dynamic modes).
+            Saving a video needs ffmpeg to be installed on the system (see README.md for more details on the installation).
+        :type save_path: Optional[str]
+        """
         for subplot_name, subplot in self._content.items():
             # set subplot title
             subplot["ax"].set_ylabel(
@@ -434,7 +560,7 @@ class Plot(ErrorMessageMixin):
         # create animation if necessary
         if self.mode == PlotMode.DYNAMIC:
             self._dynamic_current_frame = 1
-            self._anim = MyFuncAnimation(
+            self._anim = _FullBlitFuncAnimation(
                 self._fig,
                 self._update_plot_dynamic,
                 frames=self._dynamic_frame,
@@ -444,7 +570,7 @@ class Plot(ErrorMessageMixin):
                 blit=True,
             )
         elif self.mode == PlotMode.LIVE_DYNAMIC:
-            self._anim = MyFuncAnimation(
+            self._anim = _FullBlitFuncAnimation(
                 self._fig,
                 self._update_plot_live_dynamic,
                 frames=self._live_dynamic_generator,
@@ -837,7 +963,7 @@ class Plot(ErrorMessageMixin):
 
         if self._show_cars:
             for car in self._cars:
-                if car._show_car:
+                if car.show_car:
                     translate = self._content[car._trajectory[0]]["curves"][
                         car._trajectory[1]
                     ]["data"][curves_size - 1]
@@ -1211,3 +1337,20 @@ def plot_telemetry(
     )
 
     plot.plot(show=True)
+
+
+class _FullBlitFuncAnimation(FuncAnimation):
+    """
+    This class is used to override the default FuncAnimation class in order to
+    force the blitting of the entire figure at each frame.
+    """
+
+    def _end_redraw(self, event):
+        """
+        This function overrides the default _end_redraw function in order to
+        force the blitting of the entire figure at each frame.
+        """
+        self._post_draw(None, True)
+        self.event_source.start()
+        self._fig.canvas.mpl_disconnect(self._resize_id)
+        self._resize_id = self._fig.canvas.mpl_connect("resize_event", self._on_resize)
