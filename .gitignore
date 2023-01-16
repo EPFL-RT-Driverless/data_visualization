@@ -11,5 +11,5 @@ tests/cov.html
 
 *.mp4
 *.png
-!plot_subplot_curve.png
+!docs/plot_subplot_curve.png
 #!examples

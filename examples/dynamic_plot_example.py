@@ -1,3 +1,4 @@
+#  Copyright (c) 2022. Tudor Oancea, EPFL Racing Team Driverless
 import numpy as np
 
 from data_visualization import *

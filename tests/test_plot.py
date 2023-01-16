@@ -1,3 +1,4 @@
+#  Copyright (c) 2022. Tudor Oancea, Philippe Servant, EPFL Racing Team Driverless
 import os
 
 import numpy as np

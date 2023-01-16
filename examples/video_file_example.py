@@ -1,5 +1,6 @@
 import numpy as np
 
+#  Copyright (c) 2022. Tudor Oancea, EPFL Racing Team Driverless
 from data_visualization import *
 
 np.random.seed(127)

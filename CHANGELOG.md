@@ -1,7 +1,7 @@
 # v1.1.0
 
 ## :sparkles: Enhancements
-- Created extensive documentation in [`README.md`](README.md) and [`API_REFERENCE.md`](API_REFERENCE.md), and examples
+- Created extensive documentation in [`README.md`](README.md) and [`API_REFERENCE.md`](docs/API_REFERENCE.md), and examples
   in [`examples/`](examples/).
 - Added the car plotting feature.
 - Added full test suite for static and dynamic plots. Most of them are visual for the moment, but we plan on adding

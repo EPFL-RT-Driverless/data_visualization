@@ -659,7 +659,8 @@ class Plot(ErrorMessageMixin):
                 new_data[subplot_name] = {}
                 for curve_name, curve in subplot.items():
                     new_data[subplot_name][curve_name] = None
-                    just_assign_dont_worry = (
+                    # check if there is data yet. if not, create a new array
+                    no_data_yet = (
                         self._content[subplot_name]["curves"][curve_name]["data"]
                         is None
                     )
@@ -691,7 +692,7 @@ class Plot(ErrorMessageMixin):
                                 + " should be a numpy array of shape (2,) but is "
                                 + str(curve.shape)
                             )
-                            if just_assign_dont_worry:
+                            if no_data_yet:
                                 new_data[subplot_name][curve_name] = np.expand_dims(
                                     curve, 0
                                 )
@@ -717,7 +718,7 @@ class Plot(ErrorMessageMixin):
                                 + " should be a numpy array but is "
                                 + str(type(curve))
                             )
-                            if not just_assign_dont_worry:
+                            if not no_data_yet:
                                 assert (
                                     curve.shape
                                     == self._content[subplot_name]["curves"][
@@ -752,30 +753,38 @@ class Plot(ErrorMessageMixin):
                             ]
                             == CurveType.REGULAR
                         ):
-                            assert (
-                                isinstance(curve, float)
-                                or isinstance(curve, np.float64)
-                                or isinstance(curve, np.float32)
-                            ), (
-                                "The data for the curve "
-                                + curve_name
-                                + " in the subplot "
-                                + subplot_name
-                                + " should be a float but is "
-                                + str(type(curve))
-                            )
-
-                            if just_assign_dont_worry:
+                            # check type
+                            try:  # try to convert to float
+                                curve = float(curve)
+                            except:
+                                raise ValueError(
+                                    "The data for the curve "
+                                    + curve_name
+                                    + " in the subplot "
+                                    + subplot_name
+                                    + " should be a float but is "
+                                    + str(type(curve))
+                                )
+                            # append to data
+                            if no_data_yet:
                                 self._content[subplot_name]["curves"][curve_name][
                                     "data"
-                                ] = np.expand_dims(curve, 0)
+                                ] = np.array([curve])
                             else:
-                                new_data[subplot_name][curve_name] = np.append(
-                                    self._content[subplot_name]["curves"][curve_name][
-                                        "data"
-                                    ],
-                                    np.expand_dims(curve, 0),
-                                    axis=0,
+                                # new_data[subplot_name][curve_name] = np.append(
+                                #     self._content[subplot_name]["curves"][curve_name][
+                                #         "data"
+                                #     ],
+                                #     np.expand_dims(curve, 0),
+                                #     axis=0,
+                                # )
+                                new_data[subplot_name][curve_name] = np.hstack(
+                                    (
+                                        self._content[subplot_name]["curves"][
+                                            curve_name
+                                        ]["data"],
+                                        curve,
+                                    )
                                 )
                         elif (
                             self._content[subplot_name]["curves"][curve_name][
@@ -799,8 +808,19 @@ class Plot(ErrorMessageMixin):
                                 + " should be a numpy array of shape (n,) but is "
                                 + str(curve.shape)
                             )
-
-                            new_data[subplot_name][curve_name] = curve
+                            if no_data_yet:
+                                new_data[subplot_name][curve_name] = np.expand_dims(
+                                    curve, 0
+                                )
+                            else:
+                                new_data[subplot_name][curve_name] = np.vstack(
+                                    (
+                                        self._content[subplot_name]["curves"][
+                                            curve_name
+                                        ]["data"],
+                                        np.expand_dims(curve, 0),
+                                    )
+                                )
                         else:
                             self._print_status_message(
                                 "You sent data for a curve that is not regular or prediction, ignoring"
@@ -879,6 +899,7 @@ class Plot(ErrorMessageMixin):
                         pass
 
             if have_to_update:
+                print(self._length_curves)
                 self._update_plot_common(self._length_curves)
 
             if last_received_image is not None:
@@ -914,7 +935,12 @@ class Plot(ErrorMessageMixin):
                             )
                         if self._sampling_time is not None:
                             xdata *= self._sampling_time
-
+                        # if curve["curve_type"] == CurveType.PREDICTION:
+                        #     print(
+                        #         curves_size,
+                        #         curve["data"].shape,
+                        #         curve["data"][curves_size - 1],
+                        #     )
                         if curve["curve_style"] != CurvePlotStyle.SCATTER:
                             curve["line"].set_data(
                                 xdata,

@@ -11,14 +11,14 @@ creation of the plot (e.g. after the simulation you were running has ended).
 difference is that the data does not need to already be generated and can be provided to the `Plot` object
 throughout the experiment via a socket communication mechanism.
 
-See [`README.md`](README.md) for more details.
+See [`README.md`](../README.md) for more details.
 
 # `SubplotType`
 Enum used to specify the type of subplot. Available types are:
 - SPATIAL : the data is plotted on a 2D space.
 - TEMPORAL : the data is plotted on a 1D space as a function of time.
 
-See [`README.md`](README.md) for more details.
+See [`README.md`](../README.md) for more details.
 
 # `CurveType`
 Enum used to specify the type of curve. Available types are:
@@ -29,7 +29,7 @@ curve is animated by appending values to it at each iteration.
 - PREDICTION: only used in dynamic and live dynamic modes (ignored in static mode), the curve is fully redrawn at
 each iteration instead of appending values to it.
 
-See [`README.md`](README.md) for more details.
+See [`README.md`](../README.md) for more details.
 
 # `CurvePlotStyle`
 Enum used to specify the type of curve. Available types are:
@@ -40,7 +40,7 @@ curve is animated by appending values to it at each iteration.
 - PREDICTION: only used in dynamic and live dynamic modes (ignored in static mode), the curve is fully redrawn at
 each iteration instead of appending values to it.
 
-See [`README.md`](README.md) for more details.
+See [`README.md`](../README.md) for more details.
 
 # `Car`
 Class used to represent the car in the plot. The car is represented by a rectangle that is rotated

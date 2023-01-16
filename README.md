@@ -29,7 +29,7 @@ populate with the `Plot.add_subplot()` method in a declarative fashion. This met
 subplot is
 located on the grid (it can occupy several cells of the grid to create subplots of different sizes) and declare
 the _curves_ that it will contain. This hierarchy _plot > subplot> curve_ is represented in the following image:
-![plot-subplot-curve](plot_subplot_curve.png)
+![plot-subplot-curve](docs/plot_subplot_curve.png)
 
 In data_visualization, you can highly customize all the data you specify. Most of the customization options are
 described by four enum classes : [`PlotMode`](#plotmode), [`SubplotType`](#subplottype), [`CurveType`](#curvetype) and
@@ -162,6 +162,8 @@ is the format: it only allows to save the video in .gif format.
 > We therefore made the choice to ignore the `show` argument when `save_path` is not `None`.
 
 ## Plotting a simple representation of the car
+![car](docs/car_image.png)
+
 You have the possibility to plot a simple representation of the car. To do so, you need to pass the argument
 `show_car=true` while initializing the plot.
 
