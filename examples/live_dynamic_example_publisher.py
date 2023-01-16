@@ -1,10 +1,10 @@
+#  Copyright (c) 2022. Tudor Oancea, EPFL Racing Team Driverless
 import signal
 from time import perf_counter
 
 import numpy as np
 
 from data_visualization import Publisher, STOP_SIGNAL
-from fsds_client import Simulation
 
 
 def sleep_precise(sec):

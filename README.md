@@ -225,7 +225,6 @@ For example if we suppose that we have a plot with two subplots `subplot_1` and 
 ```
 
 
-
 ## Live camera feed in live dynamic plots
 
 In a live dynamic plot, you can optionally also send an image along with the curve data, that will be displayed in a
@@ -243,6 +242,10 @@ representing the speed of the car, and another 1x1 temporal subplot representing
 - In animated modes (dynamic and live dynamic), the regular and prediction curves are erased when the window is
   resized. This is not a problem during the animation since everything will be redrawn anyway, but it is a problem
   after the last frame. Try not to resize the window during the animation.
+- Sometimes (we don't know when or why), you may encounter `FileNotFoundError: [Errno 2] No such file or directory`
+  error in live dynamic mode in the script creating the `Plot` instance. This may be solved by calling
+  `multiprocessing.set_start_method('spawn')` method before creating the `Plot` instance, see this
+  [page for details](https://superfastpython.com/filenotfounderror-multiprocessing-python/).
 
 # Implementation details (for developers)
 
