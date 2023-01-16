@@ -1,15 +1,18 @@
 # v1.1.0
-added telemetry visualization templates and tests to demo the visualization from mock car data.
 
-added full testing for static and dynamic plots.
+## :sparkles: Enhancements
+- Created extensive documentation in [`README.md`](README.md) and [`API_REFERENCE.md`](API_REFERENCE.md), and examples
+  in [`examples/`](examples/).
+- Added the car plotting feature.
+- Added full test suite for static and dynamic plots. Most of them are visual for the moment, but we plan on adding
+  more headless tests that could run in CI.
+- Added telemetry visualization templates and tests to demo the visualization from mock car data.
 
-added the car plotting feature.
-
-added documentation for the visualization module (see the `DOC.md` file).
-
-fixed bugs on prediction curves.
-
-fixed a bug one video creation.
+## :bug: Bug fixes
+- In temporal subplots, the prediction curves were not correctly connected to regular curves on the x-axis. Now they
+  are.
+- fixed a bug in video creation with ffmpeg.
+- fixed the car orientation that sometimes wasn't changed.
 
 # v1.0.5
 

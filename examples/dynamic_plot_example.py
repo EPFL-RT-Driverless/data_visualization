@@ -10,15 +10,16 @@ def main():
         mode=PlotMode.DYNAMIC,
         col_nbr=2,
         row_nbr=2,
-        figsize=(7, 7),
+        figsize=(7, 3),
         sampling_time=0.1,
         interval=10,
     )
-    N = 100
-    M = 10
-    # create a sin wave with noise, of length N+M and then extract the predictions at each N time step
-    x = np.linspace(0, 2 * np.pi, N + M)
-    y = np.sin(x) + np.random.randn(N + M) * 0.1
+    N = 100  # number of time steps
+    M = 10  # number of prediction steps
+
+    # create data for the map subplot
+    x = np.linspace(0, 6 * np.pi, N + M)
+    y = 5 * np.sin(x / 3) + np.random.randn(N + M) * 0.1
     predictions = np.zeros((N, M, 2))
     for i in range(N):
         predictions[i, :, 0] = x[i : i + M]
@@ -53,29 +54,28 @@ def main():
             },
         },
     )
-    # same thing for speed
-    y = np.random.rand(N + M) * 10
+    # create data for the speed and steering angle subplots
+    y = np.sin(np.arange(N + M) / 10) + np.random.randn(N + M) * 0.1
     predictions = np.zeros((N, M))
     for i in range(N):
         predictions[i, :] = y[i : i + M]
     trajectory = y[:N]
 
-    x = np.sin(np.linspace(0, 2 * np.pi, 100).reshape(10, 10))
     plot.add_subplot(
-        subplot_name="speed",
+        subplot_name="orientation",
         row_idx=0,
         col_idx=1,
         subplot_type=SubplotType.TEMPORAL,
-        unit="m/s",
+        unit="rad",
         show_unit=True,
         curves={
-            "speed": {
+            "orientation": {
                 "data": trajectory,
                 "curve_type": CurveType.REGULAR,
                 "curve_style": CurvePlotStyle.PLOT,
                 "mpl_options": {"color": "blue"},
             },
-            "speed_pred": {
+            "orientation_pred": {
                 "data": predictions,
                 "curve_type": CurveType.PREDICTION,
                 "curve_style": CurvePlotStyle.PLOT,

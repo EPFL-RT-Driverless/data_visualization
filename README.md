@@ -158,22 +158,25 @@ If you don't want to install FFMpeg you can use another writer for matplotlib : 
 uncomment the lines in the call of `self._anim.save` in the function `plot` of the `Plot` class (`plot.py`). The drawback
 is the format: it only allows to save the video in .gif format.
 
+> Note: the way matplotlib implements animations prohibits us from saving the video AND displaying it at the same time.
+> We therefore made the choice to ignore the `show` argument when `save_path` is not `None`.
+
 ## Plotting a simple representation of the car
-You have the possibility to plot a simple representation of the car. To do so, you need to pass the argument `show_car=true`
-while initializing the plot.
+You have the possibility to plot a simple representation of the car. To do so, you need to pass the argument
+`show_car=true` while initializing the plot.
 
 The class `Car` is used to know which data to use :
 - `_trajectory : string` : the trajectory of the car.
-- `_orientation : string` : the orientation angle of the car.
+- `_orientation : string` : the orientation angle of the car, in radians.
 - `_steering : string` : the steering angle of the car.
 
-These attributes are set while adding a subplot. The argument `car_data_type : string` is used to precise which attribute
-to set. The argument `car_data_names : list[string]` is used to precise which curve to use for the data. The argument
-`car_ids : list[int]` is used to precise which car is concerned by the data.
+These attributes are set while adding a subplot. The argument `car_data_type : string` is used to specify which
+attribute to set. The argument `car_data_names : list[string]` is used to specify which curve to use for the data. The
+argument `car_ids : list[int]` is used to specify which car is concerned by the data.
 
 To add a new car you simply need to pass the next id in the argument `car_ids` and the list of cars will be updated automatically.
 
-And a attribute `_show_car` that stays `False` until the `_trajectory` attribute is set. This attribute is the only one
+An attribute `_show_car` that stays `False` until the `_trajectory` attribute is set. This attribute is the only one
 necessary to plot the car.
 
 ## Live dynamic plots
@@ -235,6 +238,9 @@ representing the speed of the car, and another 1x1 temporal subplot representing
 - the xlim and ylim of the plots are updated each time the plotted data changes
 - The `Publisher.terminate()` method is not always properly called when connected to `SIGINT` signal
   (see [above](#live-dynamic-plots)).
+- In animated modes (dynamic and live dynamic), the regular and prediction curves are erased when the window is
+  resized. This is not a problem during the animation since everything will be redrawn anyway, but it is a problem
+  after the last frame. Try not to resize the window during the animation.
 
 # Implementation details (for developers)
 

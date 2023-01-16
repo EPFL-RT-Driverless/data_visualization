@@ -585,6 +585,113 @@ def test_car():
     )
 
 
+def test_prediction_curves_ignored_in_static_mode():
+    plot = Plot(
+        mode=PlotMode.STATIC,
+        col_nbr=2,
+        row_nbr=2,
+        figsize=(7, 7),
+        sampling_time=0.1,
+        interval=10,
+    )
+    N = 100  # number of time steps
+    M = 10  # number of prediction steps
+
+    # create data for the map subplot
+    x = np.linspace(0, 2 * np.pi, N + M)
+    y = np.sin(x) + np.random.randn(N + M) * 0.1
+    predictions = np.zeros((N, M, 2))
+    for i in range(N):
+        predictions[i, :, 0] = x[i : i + M]
+        predictions[i, :, 1] = y[i : i + M]
+    trajectory = np.array([x[:N], y[:N]]).T
+
+    plot.add_subplot(
+        subplot_name="map",
+        row_idx=range(2),
+        col_idx=0,
+        subplot_type=SubplotType.SPATIAL,
+        unit="m",
+        show_unit=True,
+        curves={
+            "cones": {
+                "data": np.random.rand(10, 2) * np.pi,
+                "curve_type": CurveType.STATIC,
+                "curve_style": CurvePlotStyle.SCATTER,
+                "mpl_options": {"color": "red", "marker": "^"},
+            },
+            "trajectory": {
+                "data": trajectory,
+                "curve_type": CurveType.REGULAR,
+                "curve_style": CurvePlotStyle.PLOT,
+                "mpl_options": {"color": "blue"},
+            },
+            "trajectory_pred": {
+                "data": predictions,
+                "curve_type": CurveType.PREDICTION,
+                "curve_style": CurvePlotStyle.PLOT,
+                "mpl_options": {"color": "green"},
+            },
+        },
+    )
+    # create data for the speed and steering angle subplots
+    y = np.random.rand(N + M) * 10
+    predictions = np.zeros((N, M))
+    for i in range(N):
+        predictions[i, :] = y[i : i + M]
+    trajectory = y[:N]
+
+    plot.add_subplot(
+        subplot_name="speed",
+        row_idx=0,
+        col_idx=1,
+        subplot_type=SubplotType.TEMPORAL,
+        unit="m/s",
+        show_unit=True,
+        curves={
+            "speed": {
+                "data": trajectory,
+                "curve_type": CurveType.REGULAR,
+                "curve_style": CurvePlotStyle.PLOT,
+                "mpl_options": {"color": "blue"},
+            },
+            "speed_pred": {
+                "data": predictions,
+                "curve_type": CurveType.PREDICTION,
+                "curve_style": CurvePlotStyle.PLOT,
+                "mpl_options": {"color": "green"},
+            },
+        },
+    )
+    plot.add_subplot(
+        subplot_name="steering",
+        row_idx=1,
+        col_idx=1,
+        subplot_type=SubplotType.TEMPORAL,
+        unit="rad",
+        show_unit=True,
+        curves={
+            "steering": {
+                "data": trajectory,
+                "curve_type": CurveType.REGULAR,
+                "curve_style": CurvePlotStyle.STEP,
+                "mpl_options": {"color": "blue"},
+            },
+            "steering_pred": {
+                "data": predictions,
+                "curve_type": CurveType.PREDICTION,
+                "curve_style": CurvePlotStyle.STEP,
+                "mpl_options": {"color": "green"},
+            },
+        },
+    )
+    plot.plot(show=False)
+    assert (
+        len(plot._content["map"]["curves"]["trajectory_pred"]["line"]._xorig) == 0
+        and len(plot._content["map"]["curves"]["trajectory_pred"]["line"]._yorig) == 0
+    ), "Prediction curves should be empty in static mode"
+
+
 @pytest.mark.skip("to be used for visual tests")
 def test_all():
     """

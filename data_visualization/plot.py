@@ -19,7 +19,14 @@ from .constants import *
 from .constants import ErrorMessageMixin
 from .subscriber import launch_client
 
-__all__ = ["Plot", "PlotMode", "SubplotType", "CurveType", "CurvePlotStyle"]
+__all__ = [
+    "Plot",
+    "PlotMode",
+    "SubplotType",
+    "CurveType",
+    "CurvePlotStyle",
+    "CarDataType",
+]
 
 
 class PlotMode(Enum):
@@ -91,6 +98,14 @@ class CurvePlotStyle(Enum):
     SEMILOGX = 3
     SEMILOGY = 4
     LOGLOG = 5
+
+
+class CarDataType(Enum):
+    """ """
+
+    TRAJECTORY = 0
+    ORIENTATION = 1
+    STEERING = 2
 
 
 class Car:
@@ -203,9 +218,6 @@ class Plot(ErrorMessageMixin):
         self._anim = None
         self._length_curves = 0
         self._show_cars = show_car
-        self._car_traj = False
-        self._car_phi = False
-        self._wheel_delta = False
         self._cars = []
 
         mplstyle.use("fast")
@@ -242,7 +254,7 @@ class Plot(ErrorMessageMixin):
         unit: str,
         show_unit: bool,
         curves: dict,
-        car_data_type: Optional[str] = None,
+        car_data_type: Optional[CarDataType] = None,
         car_data_names: Optional[list] = None,
         car_ids: Optional[list] = None,
     ):
@@ -301,8 +313,8 @@ class Plot(ErrorMessageMixin):
              | prediction curve | (N,M) | (N,M) | None at initialization and (M,) at each publish |
 
         :type curves: dict
-        :param car_data_type: the type of data to link to the car (see class Car).
-        :type car_data_type: Optional[str]
+        :param car_data_type : the type of data to link to the car (see README.md).
+        :type car_data_type: Optional[CarDataType]
         :param car_data_names: i-th value is the name of the curve containing the data for the data_type attribute of the
           `car_id[i]`-th car.
         :type car_data_names: Optional[list]
@@ -456,6 +468,9 @@ class Plot(ErrorMessageMixin):
             assert len(car_data_names) == len(
                 car_ids
             ), "car_data_name and car_id must have the same length"
+            car_data_type = (
+                "_" + car_data_type.name.lower()
+            )  # convert CarDataType value to attribute name of Car class
             for a in range(len(car_ids)):
                 i = car_ids[a]
                 car_data_name = car_data_names[a]
@@ -463,11 +478,13 @@ class Plot(ErrorMessageMixin):
                 if len(self._cars) >= i:
                     # car already exists
                     i = i - 1
-                    car_attribute = self._cars[i].__dict__[car_data_type]
-                    if car_attribute is None:
-                        car_attribute = (subplot_name, car_data_name)
-                        if car_data_type == "_trajectory":
-                            self._cars[i].show_car = True
+                    if self._cars[i].__dict__[car_data_type] is None:
+                        self._cars[i].__dict__[car_data_type] = (
+                            subplot_name,
+                            car_data_name,
+                        )
+                    if car_data_type == "_trajectory":
+                        self._cars[i].show_car = True
                 else:
                     # car does not exist yet
                     i = i - 1
@@ -493,7 +510,8 @@ class Plot(ErrorMessageMixin):
         Plots everything. In static mode, just plots everything once. In dynamic and live dynamic modes, plots the static
         curves and then creates an animation based on FuncAnimation from matplotlib.animation.
 
-        :param show: whether to also call plt.show() at the end
+        :param show: whether to also call plt.show() at the end. Ignored if save_path is specified because matplotlib
+            cannot save and show at the same time.
         :type show: bool
         :param save_path: if not None, the path where to save the plot (image file for static mode, video for dynamic modes).
             Saving a video needs ffmpeg to be installed on the system (see README.md for more details on the installation).
@@ -509,9 +527,9 @@ class Plot(ErrorMessageMixin):
             )
             # plot all the curves inside
             for curve_name, curve in subplot["curves"].items():
-                if (
-                    curve["curve_type"] == CurveType.STATIC
-                    or self.mode == PlotMode.STATIC
+                if curve["curve_type"] == CurveType.STATIC or (
+                    self.mode == PlotMode.STATIC
+                    and curve["curve_type"] == CurveType.REGULAR
                 ):
                     if subplot["subplot_type"] == SubplotType.TEMPORAL:
                         xdata = np.arange(curve["data"].size, dtype=np.float)
@@ -580,22 +598,29 @@ class Plot(ErrorMessageMixin):
             )
 
         if save_path is not None:
-            if self.mode == PlotMode.DYNAMIC:
+            if self.mode == PlotMode.STATIC:
+                plt.savefig(save_path, dpi=300)
+                if show:
+                    plt.show()
+
+            elif self.mode == PlotMode.DYNAMIC:
                 # mpl.rcParams['animation.ffmpeg_path'] = r'C:\Users\Philippe\Downloads\ffmpeg-2022-11-03-git-5ccd4d3060-essentials_build\ffmpeg-2022-11-03-git-5ccd4d3060-essentials_build\bin\ffmpeg.exe'
                 try:
+                    print("Saving video to ", save_path)
                     self._anim.save(
                         filename=save_path,
                         # writer=PillowWriter(fps=20),
                         writer=FFMpegWriter(fps=20),
                         dpi=300,
                     )
+                    print("Video saved successfully")
                 except Exception as e:
                     print("Error while saving animation: ", e)
                     print(
                         "If the error comes from a missing file please refer to the package documentation to install FFMpeg"
                     )
             else:
-                warnings.warn("cannot save static and live dynamic plots")
+                warnings.warn("cannot save live dynamic plots")
 
         elif show:
             # plt.show(block=False)
@@ -962,7 +987,7 @@ class Plot(ErrorMessageMixin):
 
                     phi = np.pi
                     if (
-                        self._car_phi
+                        car._orientation is not None
                         and len(
                             self._content[car._orientation[0]]["curves"][
                                 car._orientation[1]
@@ -970,16 +995,16 @@ class Plot(ErrorMessageMixin):
                         )
                         > curves_size
                     ):
-                        phi = np.deg2rad(
+                        phi = (
                             self._content[car._orientation[0]]["curves"][
                                 car._orientation[1]
                             ]["data"][curves_size - 1]
-                            - 90
+                            - np.pi / 2
                         )
 
                     delta = 0
                     if (
-                        self._wheel_delta
+                        car._steering is not None
                         and len(
                             self._content[car._steering[0]]["curves"][car._steering[1]][
                                 "data"
@@ -987,11 +1012,9 @@ class Plot(ErrorMessageMixin):
                         )
                         > curves_size
                     ):
-                        delta = np.deg2rad(
-                            self._content[car._steering[0]]["curves"][car._steering[1]][
-                                "data"
-                            ][curves_size - 1]
-                        )
+                        delta = self._content[car._steering[0]]["curves"][
+                            car._steering[1]
+                        ]["data"][curves_size - 1]
 
                     # car measurements
                     h_car = 2.986
