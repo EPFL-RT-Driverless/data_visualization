@@ -6,3 +6,10 @@ build
 __pycache__
 *.pyc
 venv
+
+tests/cov.html
+
+*.mp4
+*.png
+!docs/plot_subplot_curve.png
+#!examples

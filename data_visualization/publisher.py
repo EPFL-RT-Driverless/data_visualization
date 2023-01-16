@@ -10,6 +10,7 @@ from typing import Union
 import cv2
 
 from .constants import *
+from .constants import ErrorMessageMixin
 
 __all__ = ["Publisher"]
 
@@ -89,7 +90,8 @@ class Publisher(ErrorMessageMixin):
         self._print_status_message("Socket is closed")
         self._print_status_message("off")
 
-    def send_msg(self, client, msg):
+    @staticmethod
+    def send_msg(client, msg):
         # Prefix each message with a 4-byte length (network byte order)
         msg = struct.pack(">I", len(msg)) + msg
         client.sendall(msg)

@@ -1,3 +1,5 @@
 # Copyright (c) Tudor Oancea, EPFL Racing Team, 2022
 # This file contains pip dependencies that are not required to run the main package, but only to run the tests or other work files.
+pytest
 -e git+https://github.com/EPFL-RT-Driverless/fsds_client.git@v2.0.0#egg=fsds_client
+-e git+https://github.com/EPFL-RT-Driverless/track_database.git@v2.0.1#egg=track_database
