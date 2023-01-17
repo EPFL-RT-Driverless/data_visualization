@@ -13,6 +13,7 @@ from matplotlib import style as mplstyle
 from matplotlib.animation import FuncAnimation, FFMpegWriter
 from matplotlib.figure import Figure
 from matplotlib.gridspec import GridSpec
+
 # from track_database import skidpad, acceleration_track
 
 from .constants import *
