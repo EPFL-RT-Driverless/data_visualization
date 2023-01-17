@@ -13,7 +13,8 @@ from matplotlib import style as mplstyle
 from matplotlib.animation import FuncAnimation, FFMpegWriter
 from matplotlib.figure import Figure
 from matplotlib.gridspec import GridSpec
-from track_database import skidpad, acceleration_track
+
+# from track_database import skidpad, acceleration_track
 
 from .constants import *
 from .constants import ErrorMessageMixin
@@ -1203,181 +1204,181 @@ def _convert_to_contiguous_slice(idx: Union[slice, int, range]) -> slice:
     return idx
 
 
-def plot_telemetry(
-    track, trajectory, steering, motor, yaw, yaw_rate, vx, vy, show_units=False
-):
-    """Visualize the telemetry data.
-
-    Args:
-        track (Track): The track (skidpad or acceleration).
-        trajectory (np.ndarray): The trajectory of the car.
-        steering (np.ndarray): The steering angle of the car.
-        motor (np.ndarray): The motor torque of the car.
-        yaw (np.ndarray): The yaw angle of the car (normalized between -pi and pi).
-        yaw_rate (np.ndarray): The yaw rate of the car.
-        vx (np.ndarray): The longitudinal velocity of the car.
-        vy (np.ndarray): The lateral velocity of the car.
-    """
-    plot = Plot(
-        row_nbr=5,
-        col_nbr=2,
-        mode=PlotMode.DYNAMIC,
-        sampling_time=0.1,
-        interval=50,
-    )
-
-    # get track data
-    center_line, widths, right_cones, left_cones = (
-        skidpad(0.5) if track == "skidpad" else acceleration_track(0.5)
-    )
-
-    # plot track and trajectory
-    plot.add_subplot(
-        subplot_name="trajectory",
-        row_idx=range(4),
-        col_idx=0,
-        unit="m",
-        show_unit=show_units,
-        subplot_type=SubplotType.SPATIAL,
-        curves={
-            "left_cones": {
-                "data": left_cones,
-                "curve_type": CurveType.STATIC,
-                "curve_style": CurvePlotStyle.SCATTER,
-                "mpl_options": {"color": "blue", "marker": "^"},
-            },
-            "right_cones": {
-                "data": right_cones,
-                "curve_type": CurveType.STATIC,
-                "curve_style": CurvePlotStyle.SCATTER,
-                "mpl_options": {"color": "blue", "marker": "^"},
-            },
-            "center_line": {
-                "data": center_line,
-                "curve_type": CurveType.STATIC,
-                "curve_style": CurvePlotStyle.PLOT,
-                "mpl_options": {"color": "green"},
-            },
-            "trajectory": {
-                "data": trajectory,
-                "curve_type": CurveType.STATIC,
-                "curve_style": CurvePlotStyle.PLOT,
-                "mpl_options": {"color": "red"},
-            },
-        },
-    )
-
-    # plot steering angle
-    plot.add_subplot(
-        subplot_name="steering",
-        row_idx=0,
-        col_idx=1,
-        unit="deg",
-        show_unit=show_units,
-        subplot_type=SubplotType.TEMPORAL,
-        curves={
-            "steering": {
-                "data": steering,
-                "curve_type": CurveType.REGULAR,
-                "curve_style": CurvePlotStyle.PLOT,
-                "options": {"color": "blue", "marker": "o"},
-            },
-        },
-    )
-
-    # plot motor rpm
-    plot.add_subplot(
-        subplot_name="motor",
-        row_idx=1,
-        col_idx=1,
-        unit="rpm",
-        show_unit=show_units,
-        subplot_type=SubplotType.TEMPORAL,
-        curves={
-            "steering": {
-                "data": motor,
-                "curve_type": CurveType.REGULAR,
-                "curve_style": CurvePlotStyle.PLOT,
-                "options": {"color": "blue", "marker": "o"},
-            },
-        },
-    )
-
-    # normalize yaw angle between -pi and pi
-    yaw = np.mod(yaw + np.pi, 2 * np.pi) - np.pi
-    # plot yaw
-    plot.add_subplot(
-        subplot_name="yaw",
-        row_idx=2,
-        col_idx=1,
-        unit="rad",
-        show_unit=show_units,
-        subplot_type=SubplotType.TEMPORAL,
-        curves={
-            "yaw": {
-                "data": yaw,
-                "curve_type": CurveType.REGULAR,
-                "curve_style": CurvePlotStyle.PLOT,
-                "options": {"color": "blue", "marker": "o"},
-            },
-        },
-    )
-
-    # plot yaw rate
-    plot.add_subplot(
-        subplot_name="yaw rate",
-        row_idx=3,
-        col_idx=1,
-        unit="rad",
-        show_unit=show_units,
-        subplot_type=SubplotType.TEMPORAL,
-        curves={
-            "yaw rate": {
-                "data": yaw_rate,
-                "curve_type": CurveType.REGULAR,
-                "curve_style": CurvePlotStyle.PLOT,
-                "options": {"color": "blue", "marker": "o"},
-            },
-        },
-    )
-
-    # plot longitudinal speed
-    plot.add_subplot(
-        subplot_name="velocity x",
-        row_idx=4,
-        col_idx=0,
-        unit="m/s",
-        show_unit=show_units,
-        subplot_type=SubplotType.TEMPORAL,
-        curves={
-            "velocity": {
-                "data": vx,
-                "curve_type": CurveType.REGULAR,
-                "curve_style": CurvePlotStyle.PLOT,
-                "options": {"color": "blue", "marker": "o"},
-            },
-        },
-    )
-
-    # plot lateral speed
-    plot.add_subplot(
-        subplot_name="velocity y",
-        row_idx=4,
-        col_idx=1,
-        unit="m/s",
-        show_unit=show_units,
-        subplot_type=SubplotType.TEMPORAL,
-        curves={
-            "velocity": {
-                "data": vy,
-                "curve_type": CurveType.REGULAR,
-                "curve_style": CurvePlotStyle.PLOT,
-                "options": {"color": "blue", "marker": "o"},
-            },
-        },
-    )
-
-    plot.plot(show=True)
+# def plot_telemetry(
+#     track, trajectory, steering, motor, yaw, yaw_rate, vx, vy, show_units=False
+# ):
+#     """Visualize the telemetry data.
+#
+#     Args:
+#         track (Track): The track (skidpad or acceleration).
+#         trajectory (np.ndarray): The trajectory of the car.
+#         steering (np.ndarray): The steering angle of the car.
+#         motor (np.ndarray): The motor torque of the car.
+#         yaw (np.ndarray): The yaw angle of the car (normalized between -pi and pi).
+#         yaw_rate (np.ndarray): The yaw rate of the car.
+#         vx (np.ndarray): The longitudinal velocity of the car.
+#         vy (np.ndarray): The lateral velocity of the car.
+#     """
+#     plot = Plot(
+#         row_nbr=5,
+#         col_nbr=2,
+#         mode=PlotMode.DYNAMIC,
+#         sampling_time=0.1,
+#         interval=50,
+#     )
+#
+#     # get track data
+#     center_line, widths, right_cones, left_cones = (
+#         skidpad(0.5) if track == "skidpad" else acceleration_track(0.5)
+#     )
+#
+#     # plot track and trajectory
+#     plot.add_subplot(
+#         subplot_name="trajectory",
+#         row_idx=range(4),
+#         col_idx=0,
+#         unit="m",
+#         show_unit=show_units,
+#         subplot_type=SubplotType.SPATIAL,
+#         curves={
+#             "left_cones": {
+#                 "data": left_cones,
+#                 "curve_type": CurveType.STATIC,
+#                 "curve_style": CurvePlotStyle.SCATTER,
+#                 "mpl_options": {"color": "blue", "marker": "^"},
+#             },
+#             "right_cones": {
+#                 "data": right_cones,
+#                 "curve_type": CurveType.STATIC,
+#                 "curve_style": CurvePlotStyle.SCATTER,
+#                 "mpl_options": {"color": "blue", "marker": "^"},
+#             },
+#             "center_line": {
+#                 "data": center_line,
+#                 "curve_type": CurveType.STATIC,
+#                 "curve_style": CurvePlotStyle.PLOT,
+#                 "mpl_options": {"color": "green"},
+#             },
+#             "trajectory": {
+#                 "data": trajectory,
+#                 "curve_type": CurveType.STATIC,
+#                 "curve_style": CurvePlotStyle.PLOT,
+#                 "mpl_options": {"color": "red"},
+#             },
+#         },
+#     )
+#
+#     # plot steering angle
+#     plot.add_subplot(
+#         subplot_name="steering",
+#         row_idx=0,
+#         col_idx=1,
+#         unit="deg",
+#         show_unit=show_units,
+#         subplot_type=SubplotType.TEMPORAL,
+#         curves={
+#             "steering": {
+#                 "data": steering,
+#                 "curve_type": CurveType.REGULAR,
+#                 "curve_style": CurvePlotStyle.PLOT,
+#                 "options": {"color": "blue", "marker": "o"},
+#             },
+#         },
+#     )
+#
+#     # plot motor rpm
+#     plot.add_subplot(
+#         subplot_name="motor",
+#         row_idx=1,
+#         col_idx=1,
+#         unit="rpm",
+#         show_unit=show_units,
+#         subplot_type=SubplotType.TEMPORAL,
+#         curves={
+#             "steering": {
+#                 "data": motor,
+#                 "curve_type": CurveType.REGULAR,
+#                 "curve_style": CurvePlotStyle.PLOT,
+#                 "options": {"color": "blue", "marker": "o"},
+#             },
+#         },
+#     )
+#
+#     # normalize yaw angle between -pi and pi
+#     yaw = np.mod(yaw + np.pi, 2 * np.pi) - np.pi
+#     # plot yaw
+#     plot.add_subplot(
+#         subplot_name="yaw",
+#         row_idx=2,
+#         col_idx=1,
+#         unit="rad",
+#         show_unit=show_units,
+#         subplot_type=SubplotType.TEMPORAL,
+#         curves={
+#             "yaw": {
+#                 "data": yaw,
+#                 "curve_type": CurveType.REGULAR,
+#                 "curve_style": CurvePlotStyle.PLOT,
+#                 "options": {"color": "blue", "marker": "o"},
+#             },
+#         },
+#     )
+#
+#     # plot yaw rate
+#     plot.add_subplot(
+#         subplot_name="yaw rate",
+#         row_idx=3,
+#         col_idx=1,
+#         unit="rad",
+#         show_unit=show_units,
+#         subplot_type=SubplotType.TEMPORAL,
+#         curves={
+#             "yaw rate": {
+#                 "data": yaw_rate,
+#                 "curve_type": CurveType.REGULAR,
+#                 "curve_style": CurvePlotStyle.PLOT,
+#                 "options": {"color": "blue", "marker": "o"},
+#             },
+#         },
+#     )
+#
+#     # plot longitudinal speed
+#     plot.add_subplot(
+#         subplot_name="velocity x",
+#         row_idx=4,
+#         col_idx=0,
+#         unit="m/s",
+#         show_unit=show_units,
+#         subplot_type=SubplotType.TEMPORAL,
+#         curves={
+#             "velocity": {
+#                 "data": vx,
+#                 "curve_type": CurveType.REGULAR,
+#                 "curve_style": CurvePlotStyle.PLOT,
+#                 "options": {"color": "blue", "marker": "o"},
+#             },
+#         },
+#     )
+#
+#     # plot lateral speed
+#     plot.add_subplot(
+#         subplot_name="velocity y",
+#         row_idx=4,
+#         col_idx=1,
+#         unit="m/s",
+#         show_unit=show_units,
+#         subplot_type=SubplotType.TEMPORAL,
+#         curves={
+#             "velocity": {
+#                 "data": vy,
+#                 "curve_type": CurveType.REGULAR,
+#                 "curve_style": CurvePlotStyle.PLOT,
+#                 "options": {"color": "blue", "marker": "o"},
+#             },
+#         },
+#     )
+#
+#     plot.plot(show=True)
 
 
 class _FullBlitFuncAnimation(FuncAnimation):
