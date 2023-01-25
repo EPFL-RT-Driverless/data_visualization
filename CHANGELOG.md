@@ -1,3 +1,8 @@
+# v1.1.2
+
+- added `COLCON_IGNORE` file to ignore this package in colcon builds (for brains repo)
+- replaced `np.float` by `np.float32` or `np.float64` to avoid deprecation warnings
+
 # v1.1.1
 
 :bug: commented out Kamil's template because it used an old and imcompatible version of tdb 
