@@ -533,7 +533,7 @@ class Plot(ErrorMessageMixin):
                     and curve["curve_type"] == CurveType.REGULAR
                 ):
                     if subplot["subplot_type"] == SubplotType.TEMPORAL:
-                        xdata = np.arange(curve["data"].size, dtype=np.float)
+                        xdata = np.arange(curve["data"].size, dtype=np.float32)
                         if self._sampling_time is not None:
                             xdata *= self._sampling_time
 
@@ -926,11 +926,11 @@ class Plot(ErrorMessageMixin):
                     if curve["curve_type"] != CurveType.STATIC:
                         # curves_size = min(curve["data"].shape[0], curves_size_input)
                         if curve["curve_type"] == CurveType.REGULAR:
-                            xdata = np.arange(curves_size, dtype=np.float)
+                            xdata = np.arange(curves_size, dtype=np.float32)
                         else:
                             # we have curve["curve_type"] == CurveType.PREDICTION
                             xdata = (
-                                np.arange(curve["data"].shape[1], dtype=np.float)
+                                np.arange(curve["data"].shape[1], dtype=np.float32)
                                 + curves_size
                                 - 1
                             )
