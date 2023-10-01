@@ -14,10 +14,7 @@ from matplotlib.animation import FuncAnimation, FFMpegWriter
 from matplotlib.figure import Figure
 from matplotlib.gridspec import GridSpec
 
-# from track_database import skidpad, acceleration_track
-
-from .constants import *
-from .constants import ErrorMessageMixin
+from .constants import ErrorMessageMixin, DEFAULT_HOST, DEFAULT_PORT, STOP_SIGNAL
 from .subscriber import launch_client
 
 __all__ = [
@@ -470,7 +467,7 @@ class Plot(ErrorMessageMixin):
                 car_ids
             ), "car_data_name and car_id must have the same length"
             car_data_type = (
-                "_" + car_data_type.name.lower()
+                "_" + car_data_type.lower()
             )  # convert CarDataType value to attribute name of Car class
             for a in range(len(car_ids)):
                 i = car_ids[a]
@@ -605,7 +602,6 @@ class Plot(ErrorMessageMixin):
                     plt.show()
 
             elif self.mode == PlotMode.DYNAMIC:
-                # mpl.rcParams['animation.ffmpeg_path'] = r'C:\Users\Philippe\Downloads\ffmpeg-2022-11-03-git-5ccd4d3060-essentials_build\ffmpeg-2022-11-03-git-5ccd4d3060-essentials_build\bin\ffmpeg.exe'
                 try:
                     print("Saving video to ", save_path)
                     self._anim.save(
@@ -772,13 +768,6 @@ class Plot(ErrorMessageMixin):
                                     "data"
                                 ] = np.array([curve])
                             else:
-                                # new_data[subplot_name][curve_name] = np.append(
-                                #     self._content[subplot_name]["curves"][curve_name][
-                                #         "data"
-                                #     ],
-                                #     np.expand_dims(curve, 0),
-                                #     axis=0,
-                                # )
                                 new_data[subplot_name][curve_name] = np.hstack(
                                     (
                                         self._content[subplot_name]["curves"][
@@ -918,17 +907,13 @@ class Plot(ErrorMessageMixin):
         """
         if self.mode == PlotMode.LIVE_DYNAMIC and self._length_curves == 0:
             return
-        # start_plotting = perf_counter() #to show the plotting time (see end of function)
-        # i = 1
         for subplot_name, subplot in self._content.items():
             for curve_name, curve in subplot["curves"].items():
                 if subplot["subplot_type"] == SubplotType.TEMPORAL:
                     if curve["curve_type"] != CurveType.STATIC:
-                        # curves_size = min(curve["data"].shape[0], curves_size_input)
                         if curve["curve_type"] == CurveType.REGULAR:
                             xdata = np.arange(curves_size, dtype=np.float32)
                         else:
-                            # we have curve["curve_type"] == CurveType.PREDICTION
                             xdata = (
                                 np.arange(curve["data"].shape[1], dtype=np.float32)
                                 + curves_size
@@ -936,12 +921,6 @@ class Plot(ErrorMessageMixin):
                             )
                         if self._sampling_time is not None:
                             xdata *= self._sampling_time
-                        # if curve["curve_type"] == CurveType.PREDICTION:
-                        #     print(
-                        #         curves_size,
-                        #         curve["data"].shape,
-                        #         curve["data"][curves_size - 1],
-                        #     )
                         if curve["curve_style"] != CurvePlotStyle.SCATTER:
                             curve["line"].set_data(
                                 xdata,
@@ -964,7 +943,6 @@ class Plot(ErrorMessageMixin):
                             )
 
                 elif subplot["subplot_type"] == SubplotType.SPATIAL:
-                    # curves_size = min(curve["data"].shape[0], curves_size_input)
                     if curve["curve_type"] != CurveType.STATIC:
                         if curve["curve_type"] == CurveType.REGULAR:
                             if curve["curve_style"] != CurvePlotStyle.SCATTER:
@@ -1105,7 +1083,6 @@ class Plot(ErrorMessageMixin):
                         + translate
                     )
                     pos_wtl = rotation_theta_phi @ pos_wtl + translate_wtl
-                    # pos_wtl += translate_wtl
                     wheel_tl = ptc.Rectangle(
                         pos_wtl,
                         w_wheel,
@@ -1183,7 +1160,6 @@ class Plot(ErrorMessageMixin):
                     self._content[car._trajectory[0]]["ax"].add_patch(wheel_br)
 
         self._fig.canvas.draw()
-        # print("total plotting time {}".format(perf_counter() - start_plotting)) #uncomment to show plotting time
 
 
 def _convert_to_contiguous_slice(idx: Union[slice, int, range]) -> slice:
@@ -1202,183 +1178,6 @@ def _convert_to_contiguous_slice(idx: Union[slice, int, range]) -> slice:
         raise ValueError("idx must be a contiguous slice")
 
     return idx
-
-
-# def plot_telemetry(
-#     track, trajectory, steering, motor, yaw, yaw_rate, vx, vy, show_units=False
-# ):
-#     """Visualize the telemetry data.
-#
-#     Args:
-#         track (Track): The track (skidpad or acceleration).
-#         trajectory (np.ndarray): The trajectory of the car.
-#         steering (np.ndarray): The steering angle of the car.
-#         motor (np.ndarray): The motor torque of the car.
-#         yaw (np.ndarray): The yaw angle of the car (normalized between -pi and pi).
-#         yaw_rate (np.ndarray): The yaw rate of the car.
-#         vx (np.ndarray): The longitudinal velocity of the car.
-#         vy (np.ndarray): The lateral velocity of the car.
-#     """
-#     plot = Plot(
-#         row_nbr=5,
-#         col_nbr=2,
-#         mode=PlotMode.DYNAMIC,
-#         sampling_time=0.1,
-#         interval=50,
-#     )
-#
-#     # get track data
-#     center_line, widths, right_cones, left_cones = (
-#         skidpad(0.5) if track == "skidpad" else acceleration_track(0.5)
-#     )
-#
-#     # plot track and trajectory
-#     plot.add_subplot(
-#         subplot_name="trajectory",
-#         row_idx=range(4),
-#         col_idx=0,
-#         unit="m",
-#         show_unit=show_units,
-#         subplot_type=SubplotType.SPATIAL,
-#         curves={
-#             "left_cones": {
-#                 "data": left_cones,
-#                 "curve_type": CurveType.STATIC,
-#                 "curve_style": CurvePlotStyle.SCATTER,
-#                 "mpl_options": {"color": "blue", "marker": "^"},
-#             },
-#             "right_cones": {
-#                 "data": right_cones,
-#                 "curve_type": CurveType.STATIC,
-#                 "curve_style": CurvePlotStyle.SCATTER,
-#                 "mpl_options": {"color": "blue", "marker": "^"},
-#             },
-#             "center_line": {
-#                 "data": center_line,
-#                 "curve_type": CurveType.STATIC,
-#                 "curve_style": CurvePlotStyle.PLOT,
-#                 "mpl_options": {"color": "green"},
-#             },
-#             "trajectory": {
-#                 "data": trajectory,
-#                 "curve_type": CurveType.STATIC,
-#                 "curve_style": CurvePlotStyle.PLOT,
-#                 "mpl_options": {"color": "red"},
-#             },
-#         },
-#     )
-#
-#     # plot steering angle
-#     plot.add_subplot(
-#         subplot_name="steering",
-#         row_idx=0,
-#         col_idx=1,
-#         unit="deg",
-#         show_unit=show_units,
-#         subplot_type=SubplotType.TEMPORAL,
-#         curves={
-#             "steering": {
-#                 "data": steering,
-#                 "curve_type": CurveType.REGULAR,
-#                 "curve_style": CurvePlotStyle.PLOT,
-#                 "options": {"color": "blue", "marker": "o"},
-#             },
-#         },
-#     )
-#
-#     # plot motor rpm
-#     plot.add_subplot(
-#         subplot_name="motor",
-#         row_idx=1,
-#         col_idx=1,
-#         unit="rpm",
-#         show_unit=show_units,
-#         subplot_type=SubplotType.TEMPORAL,
-#         curves={
-#             "steering": {
-#                 "data": motor,
-#                 "curve_type": CurveType.REGULAR,
-#                 "curve_style": CurvePlotStyle.PLOT,
-#                 "options": {"color": "blue", "marker": "o"},
-#             },
-#         },
-#     )
-#
-#     # normalize yaw angle between -pi and pi
-#     yaw = np.mod(yaw + np.pi, 2 * np.pi) - np.pi
-#     # plot yaw
-#     plot.add_subplot(
-#         subplot_name="yaw",
-#         row_idx=2,
-#         col_idx=1,
-#         unit="rad",
-#         show_unit=show_units,
-#         subplot_type=SubplotType.TEMPORAL,
-#         curves={
-#             "yaw": {
-#                 "data": yaw,
-#                 "curve_type": CurveType.REGULAR,
-#                 "curve_style": CurvePlotStyle.PLOT,
-#                 "options": {"color": "blue", "marker": "o"},
-#             },
-#         },
-#     )
-#
-#     # plot yaw rate
-#     plot.add_subplot(
-#         subplot_name="yaw rate",
-#         row_idx=3,
-#         col_idx=1,
-#         unit="rad",
-#         show_unit=show_units,
-#         subplot_type=SubplotType.TEMPORAL,
-#         curves={
-#             "yaw rate": {
-#                 "data": yaw_rate,
-#                 "curve_type": CurveType.REGULAR,
-#                 "curve_style": CurvePlotStyle.PLOT,
-#                 "options": {"color": "blue", "marker": "o"},
-#             },
-#         },
-#     )
-#
-#     # plot longitudinal speed
-#     plot.add_subplot(
-#         subplot_name="velocity x",
-#         row_idx=4,
-#         col_idx=0,
-#         unit="m/s",
-#         show_unit=show_units,
-#         subplot_type=SubplotType.TEMPORAL,
-#         curves={
-#             "velocity": {
-#                 "data": vx,
-#                 "curve_type": CurveType.REGULAR,
-#                 "curve_style": CurvePlotStyle.PLOT,
-#                 "options": {"color": "blue", "marker": "o"},
-#             },
-#         },
-#     )
-#
-#     # plot lateral speed
-#     plot.add_subplot(
-#         subplot_name="velocity y",
-#         row_idx=4,
-#         col_idx=1,
-#         unit="m/s",
-#         show_unit=show_units,
-#         subplot_type=SubplotType.TEMPORAL,
-#         curves={
-#             "velocity": {
-#                 "data": vy,
-#                 "curve_type": CurveType.REGULAR,
-#                 "curve_style": CurvePlotStyle.PLOT,
-#                 "options": {"color": "blue", "marker": "o"},
-#             },
-#         },
-#     )
-#
-#     plot.plot(show=True)
 
 
 class _FullBlitFuncAnimation(FuncAnimation):

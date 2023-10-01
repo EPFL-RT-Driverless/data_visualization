@@ -1,3 +1,7 @@
+# v1.1.3
+
+removed pinned dependencies for matplotlib and scipy and refactored some commented out code
+
 # v1.1.2
 
 - added `COLCON_IGNORE` file to ignore this package in colcon builds (for brains repo)
