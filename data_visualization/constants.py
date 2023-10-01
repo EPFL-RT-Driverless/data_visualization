@@ -1,4 +1,4 @@
-__all__ = ["STOP_SIGNAL", "DEFAULT_HOST", "DEFAULT_PORT"]
+__all__ = ["STOP_SIGNAL", "DEFAULT_HOST", "DEFAULT_PORT", "ErrorMessageMixin"]
 
 STOP_SIGNAL = "STOP"
 DEFAULT_HOST = "127.0.0.1"
